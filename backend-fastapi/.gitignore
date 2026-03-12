@@ -1,0 +1,16 @@
+# CSV data files (too large for git)
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
