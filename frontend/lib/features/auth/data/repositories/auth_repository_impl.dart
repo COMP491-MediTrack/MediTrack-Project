@@ -33,6 +33,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     required String name,
     required String role,
+    String? doctorId,
   }) async {
     try {
       final user = await _dataSource.register(
@@ -40,10 +41,21 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
         name: name,
         role: role,
+        doctorId: doctorId,
       );
       return Right(user);
     } on FirebaseAuthException catch (e) {
       return Left(AuthFailure(e.message ?? 'Kayıt başarısız.'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<UserEntity>>> getDoctors() async {
+    try {
+      final doctors = await _dataSource.getDoctors();
+      return Right(doctors);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

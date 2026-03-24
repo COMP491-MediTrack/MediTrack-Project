@@ -15,12 +15,14 @@ class RegisterUseCase {
     required String password,
     required String name,
     required String role,
+    String? doctorId,
   }) {
     return _repository.register(
       email: email,
       password: password,
       name: name,
       role: role,
+      doctorId: doctorId,
     );
   }
 }

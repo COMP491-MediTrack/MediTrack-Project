@@ -12,6 +12,17 @@ class AuthInitial extends AuthState {}
 
 class AuthLoading extends AuthState {}
 
+class AuthDoctorsLoading extends AuthState {}
+
+class AuthDoctorsLoaded extends AuthState {
+  final List<UserEntity> doctors;
+
+  const AuthDoctorsLoaded(this.doctors);
+
+  @override
+  List<Object?> get props => [doctors];
+}
+
 class AuthAuthenticated extends AuthState {
   final UserEntity user;
 

@@ -13,7 +13,10 @@ abstract class AuthRepository {
     required String password,
     required String name,
     required String role,
+    String? doctorId,
   });
+
+  Future<Either<Failure, List<UserEntity>>> getDoctors();
 
   Future<Either<Failure, UserEntity?>> getCurrentUser();
 
