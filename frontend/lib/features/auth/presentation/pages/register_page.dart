@@ -8,31 +8,36 @@ import 'package:meditrack/core/router/route_names.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  String _selectedRole = AppConstants.rolePatient;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _onLoginPressed(BuildContext context) {
+  void _onRegisterPressed(BuildContext context) {
     if (_formKey.currentState?.validate() ?? false) {
-      context.read<AuthCubit>().login(
+      context.read<AuthCubit>().register(
             email: _emailController.text.trim(),
             password: _passwordController.text,
+            name: _nameController.text.trim(),
+            role: _selectedRole,
           );
     }
   }
@@ -60,6 +65,10 @@ class _LoginPageState extends State<LoginPage> {
         },
         builder: (context, state) {
           return Scaffold(
+            appBar: AppBar(
+              title: const Text('Kayıt Ol'),
+              centerTitle: true,
+            ),
             body: SafeArea(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -68,16 +77,18 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SizedBox(height: 64.h),
-                      _buildHeader(context),
-                      SizedBox(height: 48.h),
+                      SizedBox(height: 24.h),
+                      _buildNameField(),
+                      SizedBox(height: 16.h),
                       _buildEmailField(),
                       SizedBox(height: 16.h),
                       _buildPasswordField(),
+                      SizedBox(height: 24.h),
+                      _buildRoleSelector(context),
                       SizedBox(height: 32.h),
-                      _buildLoginButton(context, state),
+                      _buildRegisterButton(context, state),
                       SizedBox(height: 16.h),
-                      _buildRegisterLink(context),
+                      _buildLoginLink(context),
                       SizedBox(height: 24.h),
                     ],
                   ),
@@ -90,38 +101,27 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 80.w,
-          height: 80.w,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          child: Icon(
-            Icons.medical_services_rounded,
-            size: 44.sp,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        SizedBox(height: 20.h),
-        Text(
-          AppConstants.appName,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          'Sağlığınızı takip edin',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        ),
-      ],
+  Widget _buildNameField() {
+    return TextFormField(
+      controller: _nameController,
+      keyboardType: TextInputType.name,
+      textInputAction: TextInputAction.next,
+      textCapitalization: TextCapitalization.words,
+      decoration: const InputDecoration(
+        labelText: 'Ad Soyad',
+        hintText: 'Adınız Soyadınız',
+        prefixIcon: Icon(Icons.person_outline),
+        border: OutlineInputBorder(),
+      ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Ad soyad gerekli';
+        }
+        if (value.trim().length < 3) {
+          return 'Ad soyad en az 3 karakter olmalı';
+        }
+        return null;
+      },
     );
   }
 
@@ -158,6 +158,7 @@ class _LoginPageState extends State<LoginPage> {
         hintText: '••••••••',
         prefixIcon: const Icon(Icons.lock_outline),
         border: const OutlineInputBorder(),
+        helperText: 'En az 6 karakter',
         suffixIcon: IconButton(
           icon: Icon(
             _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -177,10 +178,48 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildLoginButton(BuildContext context, AuthState state) {
+  Widget _buildRoleSelector(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Rolünüz',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        SizedBox(height: 12.h),
+        SegmentedButton<String>(
+          segments: const [
+            ButtonSegment(
+              value: AppConstants.rolePatient,
+              label: Text('Hasta'),
+              icon: Icon(Icons.person),
+            ),
+            ButtonSegment(
+              value: AppConstants.roleDoctor,
+              label: Text('Doktor'),
+              icon: Icon(Icons.local_hospital_outlined),
+            ),
+          ],
+          selected: {_selectedRole},
+          onSelectionChanged: (value) {
+            setState(() => _selectedRole = value.first);
+          },
+          style: ButtonStyle(
+            minimumSize: WidgetStateProperty.all(
+              Size(double.infinity, 48.h),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRegisterButton(BuildContext context, AuthState state) {
     final isLoading = state is AuthLoading;
     return FilledButton(
-      onPressed: isLoading ? null : () => _onLoginPressed(context),
+      onPressed: isLoading ? null : () => _onRegisterPressed(context),
       style: FilledButton.styleFrom(
         minimumSize: Size(double.infinity, 52.h),
         shape: RoundedRectangleBorder(
@@ -197,27 +236,27 @@ class _LoginPageState extends State<LoginPage> {
               ),
             )
           : Text(
-              'Giriş Yap',
+              'Kayıt Ol',
               style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
             ),
     );
   }
 
-  Widget _buildRegisterLink(BuildContext context) {
+  Widget _buildLoginLink(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          'Hesabınız yok mu?',
+          'Zaten hesabınız var mı?',
           style: TextStyle(
             fontSize: 14.sp,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         TextButton(
-          onPressed: () => context.push(RouteNames.register),
+          onPressed: () => context.pop(),
           child: Text(
-            'Kayıt Olun',
+            'Giriş Yapın',
             style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
           ),
         ),

@@ -1,5 +1,6 @@
 class RouteNames {
   static const login = '/login';
+  static const register = '/register';
   static const doctorDashboard = '/doctor';
   static const patientDashboard = '/patient';
   static const prescription = '/prescription';
