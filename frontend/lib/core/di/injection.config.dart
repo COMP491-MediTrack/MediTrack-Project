@@ -29,6 +29,8 @@ import 'package:meditrack/features/auth/domain/usecases/register_usecase.dart'
     as _i1050;
 import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart'
     as _i596;
+import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_cubit.dart'
+    as _i172;
 
 extension GetItInjectableX on _i174.GetIt {
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -49,6 +51,8 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i59.FirebaseAuth>(),
               gh<_i974.FirebaseFirestore>(),
             ));
+    gh.factory<_i172.DashboardCubit>(
+        () => _i172.DashboardCubit(gh<_i974.FirebaseFirestore>()));
     gh.lazySingleton<_i1038.AuthRepository>(
         () => _i549.AuthRepositoryImpl(gh<_i1020.AuthRemoteDataSource>()));
     gh.lazySingleton<_i1050.RegisterUseCase>(
