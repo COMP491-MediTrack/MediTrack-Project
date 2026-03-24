@@ -22,17 +22,40 @@ MediTrack-Project/
 ```
 Flutter → Firebase Auth       # Login, register, token
 Flutter → Firestore           # Reçete, reminder, adherence, profil, lab sonuçları
-Flutter → FastAPI             # İlaç arama, barkod, DDI kontrolü
+Flutter → FastAPI             # İlaç arama, barkod, DDI kontrolü, AI endpoint'leri
 FastAPI → CSV                 # Türk ilaç DB (7,917 ilaç) + DDI DB (191,542 kayıt)
+FastAPI → Claude API          # AI: semptom analizi, reçete özeti, lab sonucu analizi
 FastAPI → OpenFDA API         # Generic name bazlı ek ilaç bilgisi (eklenecek)
 ```
 
 **Firebase Firestore koleksiyonları:**
-- `users` — kullanıcı profilleri (rol: doctor | patient)
-- `prescriptions` — reçeteler
+- `users` — kullanıcı profilleri (rol: doctor | patient, doctorId: hasta için bağlı doktor)
+- `prescriptions` — reçeteler (doctorId, patientId, drugs[], status, createdAt)
 - `reminders` — ilaç hatırlatıcıları
 - `adherence` — ilaç alım kayıtları
 - `lab_results` — laboratuvar sonuçları (PDF, Firebase Storage)
+
+**Firestore Security Rules özeti:**
+- Kullanıcı kendi dokümanını okuyup yazabilir
+- Giriş yapmış herkes doktorları listeleyebilir (kayıt ekranı için)
+- Doktor kendi hastalarını görebilir (doctorId == currentUser.uid)
+- Hasta kendi doktorunun profilini okuyabilir
+
+---
+
+## Kullanıcı Rolleri ve Akışlar
+
+**Doctor:**
+- Kayıt olurken rol "Doktor" seçilir, doctorId alanı olmaz
+- Dashboard: hasta listesi (Firestore'dan doctorId == uid sorgusu)
+- Reçete yazar → FastAPI'ye ilaç arama → DDI kontrolü → Firestore'a kaydeder
+- Hasta semptomlarını ve AI öncelik skorunu görür
+
+**Patient:**
+- Kayıt olurken rol "Hasta" seçilir ve listeden doktor seçilir
+- Firestore'da `doctorId` alanı oluşturulur
+- Dashboard: aktif reçeteler, ilacı aldım butonu
+- Semptomlarını girer → AI analiz eder → doktora öncelik skoru gider
 
 ---
 
@@ -57,14 +80,18 @@ features/{feature_name}/
     └── widgets/         # Ekrana özel widget'lar
 ```
 
-**Mevcut feature'lar:**
-- `auth` — Firebase Auth ile giriş/kayıt, rol yönetimi
-- `prescription` — Doktor reçete oluşturur, hastaya atar
-- `ddi` — İlaç-ilaç etkileşim kontrolü (FastAPI'ye gider)
-- `drug_search` — İsim/barkod ile ilaç arama (FastAPI'ye gider)
+**Tamamlanan feature'lar:**
+- `auth` — Firebase Auth ile giriş/kayıt, rol yönetimi, hasta→doktor seçimi
+- `dashboard` — Doctor dashboard (hasta listesi), Patient dashboard (reçete özeti)
+
+**Yapılacak feature'lar:**
+- `prescription` — Doktor reçete oluşturur, ilaç arar, DDI kontrolü, Firestore'a kaydeder
+- `drug_search` — İsim/barkod ile FastAPI'den ilaç arama (prescription ile birlikte)
+- `ddi` — Reçete yazılırken otomatik DDI kontrolü ve uyarı
+- `ai` — Semptom analizi, reçete özeti, lab sonucu analizi (Claude API via FastAPI)
 - `medication` — Hasta ilaç takibi, hatırlatıcı, adherence streak
 - `pharmacy` — Yakın eczane haritası
-- `profile` — Kullanıcı profili, lab sonuçları
+- `profile` — Kullanıcı profili, lab sonuçları PDF
 
 **core/ yapısı:**
 ```
@@ -92,95 +119,82 @@ core/
 | `cloud_firestore` | Uygulama verisi (reçete, reminder, adherence) |
 | `firebase_storage` | Lab sonuçları PDF yükleme |
 | `shared_preferences` | Token, dil, ayarlar (basit key-value) |
-| `hive` | Yapısal cache (ilaç listesi, kullanıcı profili) |
+| `hive` + `hive_flutter` | Yapısal cache (ilaç listesi, kullanıcı profili) |
 | `dartz` | `Either<Failure, Success>` error handling |
 | `equatable` | Value equality (entity ve state sınıfları için) |
-| `flutter_screenutil` | Pixel perfect responsive layout |
-
-**Henüz eklenmeyen paketler (eklenecek):**
-- `hive_flutter` + `hive_generator` + `build_runner`
-- `injectable` + `injectable_generator`
-- `flutter_screenutil`
+| `flutter_screenutil` | Pixel perfect responsive layout (referans: 390x844 iPhone 14) |
 
 ---
 
-## Flutter — Error Handling Kuralı
+## Flutter — Kurallar
 
+### Error Handling
 `dartz` paketi ile `Either<Failure, Success>` pattern kullanılır:
-
 ```
 Repository  →  Either<Failure, Entity>
 UseCase     →  Either<Failure, Entity>
 Cubit       →  emit(ErrorState(failure.message)) veya emit(SuccessState(data))
 ```
-
 Tüm Failure tipleri `core/errors/failures.dart` içindedir:
 - `ServerFailure` — API hatası
 - `NetworkFailure` — Bağlantı yok
 - `AuthFailure` — Firebase auth hatası
 - `CacheFailure` — Local storage hatası
 
----
-
-## Flutter — State Management Kuralı
-
+### State Management
 - **Cubit** → Basit ekranlar (form, liste, profil)
 - **Bloc** → Karmaşık event akışları (çok adımlı reçete oluşturma, DDI kontrol akışı)
+- State sınıfları `Equatable` extend eder
 
-State sınıfları `Equatable` extend eder.
+### Responsive Layout
+- `flutter_screenutil` kullanılır
+- Tüm boyutlar `.w`, `.h`, `.sp`, `.r` ile verilir
+- `ScreenUtil.init()` uygulama başında çalıştırılır
+- Tasarım referans boyutu: 390x844 (iPhone 14)
 
----
-
-## Flutter — Responsive Layout Kuralı
-
-`flutter_screenutil` kullanılır. Tüm boyutlar `.w`, `.h`, `.sp`, `.r` ile verilir.
-`ScreenUtil.init()` uygulama başında çalıştırılır.
-Tasarım referans boyutu: 390x844 (iPhone 14 standartı).
-
----
-
-## Flutter — DI Kuralı
-
-`injectable` annotation'ları kullanılır:
+### Dependency Injection
 - `@lazySingleton` — Repository, DataSource, UseCase
 - `@injectable` — Cubit/Bloc (her seferinde yeni instance)
+- `injection.dart` içinde sadece `configureDependencies()` çağrılır, elle kayıt yapılmaz
+- Değişiklik sonrası `dart run build_runner build --delete-conflicting-outputs` çalıştır
 
-`injection.dart` içinde sadece `configureDependencies()` çağrılır, elle kayıt yapılmaz.
-
----
-
-## Flutter — Network Katmanı Kuralı
-
-`core/network/` altında Dio instance ve interceptor'lar tanımlanır:
+### Network Katmanı
+- `core/network/` altında Dio instance ve interceptor'lar tanımlanır
 - Firebase Auth token her istekte header'a otomatik eklenir
 - 401 gelirse kullanıcı login'e yönlendirilir
 - Timeout, base URL `AppConstants.apiBaseUrl` üzerinden gelir
 
 ---
 
-## MVP (Önce Bunlar Bitmeli)
+## MVP Durumu
 
-1. Auth — Firebase login/register, rol bazlı yönlendirme (doctor/patient)
-2. Doctor Dashboard — Reçete oluştur, hastaya ata, DDI kontrolü
-3. Patient Dashboard — Aktif reçeteleri gör, ilacı aldım işaretle
-4. DDI Modülü — Reçete yazılırken otomatik kontrol, uyarı göster
-5. İlaç Arama — İsim veya barkod ile arama
+| # | Feature | Durum |
+|---|---------|-------|
+| 1 | Auth (login/register/rol/doktor seçimi) | ✅ Tamamlandı |
+| 2 | Doctor & Patient Dashboard (iskelet) | ✅ Tamamlandı |
+| 3 | Prescription Feature | ⏳ Sırada |
+| 4 | Drug Search (FastAPI entegrasyonu) | ⏳ Sırada |
+| 5 | DDI Kontrolü | ⏳ Sırada |
 
 ## Secondary (MVP Sonrası)
 
-6. Barkod tarama (kamera)
-7. Hasta profili + lab sonuçları (PDF)
-8. Randevu sistemi
-9. Yakın eczane haritası
-10. Adherence streak takibi
-11. Erişilebilirlik (büyük font, text-to-speech)
+| # | Feature | Notlar |
+|---|---------|--------|
+| 6 | AI — Semptom analizi + doktor öncelik sıralaması | FastAPI → Claude API |
+| 7 | AI — Reçete özeti (hasta için sade dil) | FastAPI → Claude API |
+| 8 | AI — Lab sonucu PDF analizi | FastAPI → Claude API |
+| 9 | Barkod tarama (kamera) | |
+| 10 | Hasta profili + lab sonuçları (PDF) | Firebase Storage |
+| 11 | Yakın eczane haritası | Google Maps API |
+| 12 | Adherence streak takibi | |
+| 13 | Erişilebilirlik (büyük font, text-to-speech) | |
 
 ---
 
 ## Backend (FastAPI) — Mimari
 
 ```
-backend-fastapi/
+backend/
 ├── app/
 │   ├── main.py               # FastAPI app, CORS, router
 │   ├── core/
@@ -190,10 +204,12 @@ backend-fastapi/
 │   │   └── endpoints/
 │   │       ├── health.py
 │   │       ├── drugs.py      # /search, /barcode
-│   │       └── ddi.py        # /check
+│   │       ├── ddi.py        # /check
+│   │       └── ai.py         # /analyze-symptoms, /explain-prescription, /analyze-lab (eklenecek)
 │   └── services/
 │       ├── drug_service.py   # CSV'den ilaç arama/barkod
-│       └── ddi_service.py    # CSV'den DDI kontrolü
+│       ├── ddi_service.py    # CSV'den DDI kontrolü
+│       └── ai_service.py     # Claude API entegrasyonu (eklenecek)
 └── data/
     ├── turkish_drugs.csv     # 7,917 Türk ilacı (brand name, barcode, generic name, ATC)
     └── db_drug_interactions.csv  # 191,542 DDI kaydı (drug1, drug2, description)
@@ -205,26 +221,40 @@ backend-fastapi/
 - `GET  /api/v1/drugs/barcode?code=` — barkod ile arama
 - `POST /api/v1/ddi/check` — `{"drugs": ["warfarin", "aspirin"]}` → etkileşimler
 
+**Eklenecek endpoint'ler:**
+- `POST /api/v1/ai/analyze-symptoms` — semptom analizi → öncelik skoru
+- `POST /api/v1/ai/explain-prescription` — reçete özeti (sade Türkçe)
+- `POST /api/v1/ai/analyze-lab-result` — lab sonucu PDF analizi
+
 **DDI akışı:**
 1. Doktor reçeteye ilaç ekler (Türkçe brand name)
 2. Flutter → FastAPI `/drugs/search` → generic name alır
 3. Flutter → FastAPI `/ddi/check` → etkileşim sonuçlarını alır
 4. Flutter uyarıyı doktora gösterir
 
-## Backend — Eksikler (Eklenecek)
+**AI akışı:**
+1. Hasta semptomlarını girer
+2. Flutter → FastAPI `/ai/analyze-symptoms` → Claude API → öncelik skoru + açıklama
+3. Firestore'daki hasta profiline kaydedilir
+4. Doktor dashboard'unda hasta öncelik sırasına göre listelenir
+
+## Backend — Yapılacaklar
 
 1. **Firebase JWT middleware** — Endpoint'ler şu an açık, token doğrulama yok
 2. **Pydantic response modelleri** — Tip güvenli API contract
-3. **OpenFDA entegrasyonu** — `GET /drugs/{generic_name}/info` endpoint'i
-4. **Docker Compose** — backend + deploy için
-5. **CORS kısıtlaması** — `allow_origins=["*"]` production'da kısıtlanacak
+3. **Docker + docker-compose** — Ekip ve hoca için kolay kurulum
+4. **AI endpoint'leri** — Claude API entegrasyonu
+5. **OpenFDA entegrasyonu** — `GET /drugs/{generic_name}/info`
+6. **CORS kısıtlaması** — `allow_origins=["*"]` production'da kısıtlanacak
 
 ---
 
 ## Önemli Notlar
 
-- FastAPI **kullanıcı verisi tutmaz**, sadece ilaç sorgulaması yapar
+- FastAPI **kullanıcı verisi tutmaz**, sadece ilaç sorgulaması ve AI işlemleri yapar
 - Tüm uygulama verisi **Firestore**'da durur
 - `data/` klasörü `.gitignore`'da, CSV'ler repoya commit edilmez
-- İki kullanıcı rolü vardır: `doctor` ve `patient` — tüm UI bu role göre şekillenir
+- İki kullanıcı rolü: `doctor` ve `patient` — tüm UI bu role göre şekillenir
+- Hasta kayıt olurken Firestore'daki doktorlar listelenir, bir doktor seçmek zorundadır
+- AI özellikleri tıbbi teşhis değildir — her AI çıktısında disclaimer gösterilir
 - Uygulama kendi başına tıbbi tavsiye vermez, sadece resmi veri kaynaklarından bilgi sunar
