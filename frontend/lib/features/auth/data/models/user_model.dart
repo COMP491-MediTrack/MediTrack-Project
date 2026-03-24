@@ -6,6 +6,7 @@ class UserModel extends UserEntity {
     required super.email,
     required super.name,
     required super.role,
+    super.doctorId,
   });
 
   factory UserModel.fromFirestore(Map<String, dynamic> map, String uid) {
@@ -14,6 +15,7 @@ class UserModel extends UserEntity {
       email: map['email'] as String,
       name: map['name'] as String,
       role: map['role'] as String,
+      doctorId: map['doctorId'] as String?,
     );
   }
 
@@ -22,6 +24,7 @@ class UserModel extends UserEntity {
       'email': email,
       'name': name,
       'role': role,
+      if (doctorId != null) 'doctorId': doctorId,
     };
   }
 }

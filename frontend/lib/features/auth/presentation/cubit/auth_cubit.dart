@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:meditrack/features/auth/domain/repositories/auth_repository.dart';
 import 'package:meditrack/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'package:meditrack/features/auth/domain/usecases/login_usecase.dart';
 import 'package:meditrack/features/auth/domain/usecases/logout_usecase.dart';
@@ -12,12 +13,14 @@ class AuthCubit extends Cubit<AuthState> {
   final RegisterUseCase _registerUseCase;
   final GetCurrentUserUseCase _getCurrentUserUseCase;
   final LogoutUseCase _logoutUseCase;
+  final AuthRepository _authRepository;
 
   AuthCubit(
     this._loginUseCase,
     this._registerUseCase,
     this._getCurrentUserUseCase,
     this._logoutUseCase,
+    this._authRepository,
   ) : super(AuthInitial());
 
   Future<void> checkAuthStatus() async {
@@ -52,6 +55,7 @@ class AuthCubit extends Cubit<AuthState> {
     required String password,
     required String name,
     required String role,
+    String? doctorId,
   }) async {
     emit(AuthLoading());
     final result = await _registerUseCase(
@@ -59,10 +63,20 @@ class AuthCubit extends Cubit<AuthState> {
       password: password,
       name: name,
       role: role,
+      doctorId: doctorId,
     );
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (user) => emit(AuthAuthenticated(user)),
+    );
+  }
+
+  Future<void> loadDoctors() async {
+    emit(AuthDoctorsLoading());
+    final result = await _authRepository.getDoctors();
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (doctors) => emit(AuthDoctorsLoaded(doctors)),
     );
   }
 

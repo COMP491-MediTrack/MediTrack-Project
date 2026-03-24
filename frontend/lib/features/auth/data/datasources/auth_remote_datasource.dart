@@ -11,7 +11,9 @@ abstract class AuthRemoteDataSource {
     required String password,
     required String name,
     required String role,
+    String? doctorId,
   });
+  Future<List<UserModel>> getDoctors();
   Future<UserModel?> getCurrentUser();
   Future<void> logout();
 }
@@ -46,6 +48,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
     required String name,
     required String role,
+    String? doctorId,
   }) async {
     final credential = await _firebaseAuth.createUserWithEmailAndPassword(
       email: email,
@@ -57,12 +60,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       email: email,
       name: name,
       role: role,
+      doctorId: doctorId,
     );
     await _firestore
         .collection(AppConstants.usersCollection)
         .doc(uid)
         .set(userModel.toFirestore());
     return userModel;
+  }
+
+  @override
+  Future<List<UserModel>> getDoctors() async {
+    final snapshot = await _firestore
+        .collection(AppConstants.usersCollection)
+        .where('role', isEqualTo: AppConstants.roleDoctor)
+        .get();
+    return snapshot.docs
+        .map((doc) => UserModel.fromFirestore(doc.data(), doc.id))
+        .toList();
   }
 
   @override

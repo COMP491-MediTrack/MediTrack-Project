@@ -64,6 +64,7 @@ extension GetItInjectableX on _i174.GetIt {
           gh<_i1050.RegisterUseCase>(),
           gh<_i8.GetCurrentUserUseCase>(),
           gh<_i468.LogoutUseCase>(),
+          gh<_i1038.AuthRepository>(),
         ));
     return this;
   }

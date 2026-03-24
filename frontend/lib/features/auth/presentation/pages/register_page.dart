@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:meditrack/core/constants/app_constants.dart';
 import 'package:meditrack/core/di/injection.dart';
 import 'package:meditrack/core/router/route_names.dart';
+import 'package:meditrack/core/theme/app_colors.dart';
+import 'package:meditrack/features/auth/domain/entities/user_entity.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
 
@@ -22,6 +24,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   String _selectedRole = AppConstants.rolePatient;
+  String? _selectedDoctorId;
+  List<UserEntity> _doctors = [];
 
   @override
   void dispose() {
@@ -33,11 +37,18 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _onRegisterPressed(BuildContext context) {
     if (_formKey.currentState?.validate() ?? false) {
+      if (_selectedRole == AppConstants.rolePatient && _selectedDoctorId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lütfen doktorunuzu seçin')),
+        );
+        return;
+      }
       context.read<AuthCubit>().register(
             email: _emailController.text.trim(),
             password: _passwordController.text,
             name: _nameController.text.trim(),
             role: _selectedRole,
+            doctorId: _selectedRole == AppConstants.rolePatient ? _selectedDoctorId : null,
           );
     }
   }
@@ -45,7 +56,11 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => getIt<AuthCubit>(),
+      create: (_) {
+        final cubit = getIt<AuthCubit>();
+        cubit.loadDoctors();
+        return cubit;
+      },
       child: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
@@ -54,11 +69,13 @@ class _RegisterPageState extends State<RegisterPage> {
             } else {
               context.go(RouteNames.patientDashboard);
             }
+          } else if (state is AuthDoctorsLoaded) {
+            setState(() => _doctors = state.doctors);
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: Theme.of(context).colorScheme.error,
+                backgroundColor: AppColors.error,
               ),
             );
           }
@@ -85,6 +102,10 @@ class _RegisterPageState extends State<RegisterPage> {
                       _buildPasswordField(),
                       SizedBox(height: 24.h),
                       _buildRoleSelector(context),
+                      if (_selectedRole == AppConstants.rolePatient) ...[
+                        SizedBox(height: 20.h),
+                        _buildDoctorSelector(context, state),
+                      ],
                       SizedBox(height: 32.h),
                       _buildRegisterButton(context, state),
                       SizedBox(height: 16.h),
@@ -109,17 +130,11 @@ class _RegisterPageState extends State<RegisterPage> {
       textCapitalization: TextCapitalization.words,
       decoration: const InputDecoration(
         labelText: 'Ad Soyad',
-        hintText: 'Adınız Soyadınız',
         prefixIcon: Icon(Icons.person_outline),
-        border: OutlineInputBorder(),
       ),
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Ad soyad gerekli';
-        }
-        if (value.trim().length < 3) {
-          return 'Ad soyad en az 3 karakter olmalı';
-        }
+        if (value == null || value.trim().isEmpty) return 'Ad soyad gerekli';
+        if (value.trim().length < 3) return 'Ad soyad en az 3 karakter olmalı';
         return null;
       },
     );
@@ -132,17 +147,11 @@ class _RegisterPageState extends State<RegisterPage> {
       textInputAction: TextInputAction.next,
       decoration: const InputDecoration(
         labelText: 'E-posta',
-        hintText: 'ornek@email.com',
         prefixIcon: Icon(Icons.email_outlined),
-        border: OutlineInputBorder(),
       ),
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'E-posta gerekli';
-        }
-        if (!value.contains('@')) {
-          return 'Geçerli bir e-posta girin';
-        }
+        if (value == null || value.trim().isEmpty) return 'E-posta gerekli';
+        if (!value.contains('@')) return 'Geçerli bir e-posta girin';
         return null;
       },
     );
@@ -155,24 +164,20 @@ class _RegisterPageState extends State<RegisterPage> {
       textInputAction: TextInputAction.done,
       decoration: InputDecoration(
         labelText: 'Şifre',
-        hintText: '••••••••',
         prefixIcon: const Icon(Icons.lock_outline),
-        border: const OutlineInputBorder(),
         helperText: 'En az 6 karakter',
         suffixIcon: IconButton(
           icon: Icon(
-            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+            _obscurePassword
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
           ),
           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
       ),
       validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Şifre gerekli';
-        }
-        if (value.length < 6) {
-          return 'Şifre en az 6 karakter olmalı';
-        }
+        if (value == null || value.isEmpty) return 'Şifre gerekli';
+        if (value.length < 6) return 'Şifre en az 6 karakter olmalı';
         return null;
       },
     );
@@ -204,14 +209,82 @@ class _RegisterPageState extends State<RegisterPage> {
           ],
           selected: {_selectedRole},
           onSelectionChanged: (value) {
-            setState(() => _selectedRole = value.first);
+            setState(() {
+              _selectedRole = value.first;
+              _selectedDoctorId = null;
+            });
           },
-          style: ButtonStyle(
-            minimumSize: WidgetStateProperty.all(
-              Size(double.infinity, 48.h),
-            ),
-          ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildDoctorSelector(BuildContext context, AuthState state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Doktorunuz',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        SizedBox(height: 12.h),
+        if (state is AuthDoctorsLoading)
+          Container(
+            height: 56.h,
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.divider),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: const Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          )
+        else if (_doctors.isEmpty)
+          Container(
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.divider),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: Center(
+              child: Text(
+                'Sistemde kayıtlı doktor bulunamadı',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          )
+        else
+          DropdownButtonFormField<String>(
+            value: _selectedDoctorId,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.medical_services_outlined),
+              hintText: 'Doktor seçin',
+            ),
+            items: _doctors
+                .map(
+                  (doctor) => DropdownMenuItem(
+                    value: doctor.uid,
+                    child: Text(doctor.name),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) => setState(() => _selectedDoctorId = value),
+            validator: (value) {
+              if (_selectedRole == AppConstants.rolePatient && value == null) {
+                return 'Lütfen doktorunuzu seçin';
+              }
+              return null;
+            },
+          ),
       ],
     );
   }
@@ -220,12 +293,6 @@ class _RegisterPageState extends State<RegisterPage> {
     final isLoading = state is AuthLoading;
     return FilledButton(
       onPressed: isLoading ? null : () => _onRegisterPressed(context),
-      style: FilledButton.styleFrom(
-        minimumSize: Size(double.infinity, 52.h),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-      ),
       child: isLoading
           ? SizedBox(
               width: 20.w,
@@ -248,10 +315,7 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         Text(
           'Zaten hesabınız var mı?',
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondary),
         ),
         TextButton(
           onPressed: () => context.pop(),
