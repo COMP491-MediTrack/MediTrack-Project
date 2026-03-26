@@ -2,6 +2,8 @@ class AppConstants {
   static const String appName = 'MediTrack';
 
   // FastAPI backend URL
+  // Geliştirme ortamı: Mac'in local IP'sini kullan (fiziksel cihaz için)
+  // Örn: http://192.168.1.45:8000/api/v1
   static const String apiBaseUrl = 'http://localhost:8000/api/v1';
 
   // Firestore collections
