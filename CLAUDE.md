@@ -171,10 +171,10 @@ Tüm Failure tipleri `core/errors/failures.dart` içindedir:
 | # | Feature | Durum |
 |---|---------|-------|
 | 1 | Auth (login/register/rol/doktor seçimi) | ✅ Tamamlandı |
-| 2 | Doctor & Patient Dashboard (iskelet) | ✅ Tamamlandı |
-| 3 | Prescription Feature | ⏳ Sırada |
-| 4 | Drug Search (FastAPI entegrasyonu) | ⏳ Sırada |
-| 5 | DDI Kontrolü | ⏳ Sırada |
+| 2 | Doctor & Patient Dashboard | ✅ Tamamlandı |
+| 3 | Prescription Feature | ✅ Tamamlandı |
+| 4 | Drug Search (FastAPI entegrasyonu) | ✅ Tamamlandı |
+| 5 | DDI Kontrolü | ✅ Tamamlandı |
 
 ## Secondary (MVP Sonrası)
 

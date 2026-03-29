@@ -4,12 +4,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meditrack/core/router/route_names.dart';
+import 'package:meditrack/features/auth/domain/entities/user_entity.dart';
 import 'package:meditrack/features/auth/presentation/pages/login_page.dart';
 import 'package:meditrack/features/auth/presentation/pages/register_page.dart';
 import 'package:meditrack/features/dashboard/presentation/pages/doctor_dashboard_page.dart';
 import 'package:meditrack/features/dashboard/presentation/pages/patient_dashboard_page.dart';
+import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
+import 'package:meditrack/features/prescription/presentation/pages/create_prescription_page.dart';
+import 'package:meditrack/features/prescription/presentation/pages/prescription_detail_page.dart';
+import 'package:meditrack/features/prescription/presentation/pages/prescription_list_page.dart';
 
-/// GoRouter'ı Firebase auth state değişikliklerinde yenileyen notifier.
 class _AuthStreamNotifier extends ChangeNotifier {
   late final StreamSubscription<User?> _subscription;
 
@@ -38,9 +42,7 @@ class AppRouter {
       final isAuthRoute =
           location == RouteNames.login || location == RouteNames.register;
 
-      // Giriş yapmamış kullanıcı korumalı sayfaya gitmeye çalışıyor
       if (!isLoggedIn && !isAuthRoute) return RouteNames.login;
-
       return null;
     },
     routes: [
@@ -59,6 +61,37 @@ class AppRouter {
       GoRoute(
         path: RouteNames.patientDashboard,
         builder: (context, state) => const PatientDashboardPage(),
+      ),
+      GoRoute(
+        path: RouteNames.createPrescription,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return CreatePrescriptionPage(
+            patient: extra['patient'] as UserEntity,
+            doctorName: extra['doctorName'] as String,
+          );
+        },
+      ),
+      GoRoute(
+        path: RouteNames.prescriptionList,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is Map<String, dynamic>) {
+            return PrescriptionListPage(
+              patientId: extra['patientId'] as String,
+              patientName: extra['patientName'] as String?,
+              doctorExtra: extra['doctorExtra'] as Map<String, dynamic>?,
+            );
+          }
+          return PrescriptionListPage(patientId: extra as String);
+        },
+      ),
+      GoRoute(
+        path: RouteNames.prescriptionDetail,
+        builder: (context, state) {
+          final prescription = state.extra as PrescriptionEntity;
+          return PrescriptionDetailPage(prescription: prescription);
+        },
       ),
     ],
   );

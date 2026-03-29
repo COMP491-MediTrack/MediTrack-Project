@@ -41,19 +41,9 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. CSV data dosyalarını koy ⚠️
+### 4. CSV data dosyaları
 
-`data/` klasörü `.gitignore`'da olduğu için repoda **yoktur**.
-Bu dosyaları proje grubundan alıp `backend/data/` klasörüne koyman gerekiyor:
-
-```
-backend/
-└── data/
-    ├── turkish_drugs.csv        # 7,917 Türk ilacı
-    └── db_drug_interactions.csv # 191,542 DDI kaydı
-```
-
-> Dosyaları almak için grup WhatsApp/Drive'ına bak.
+CSV dosyaları repoda mevcuttur (`backend/data/`), ayrıca bir şey yapman gerekmez.
 
 ### 5. `.env` dosyasını oluştur
 
@@ -126,3 +116,15 @@ Sunucu çalışırken tarayıcıdan tüm endpoint'leri test edebilirsin:
 ```
 http://localhost:8000/docs
 ```
+
+---
+
+## Canlı Deploy
+
+Backend Render'da deploy edilmiştir:
+
+```
+https://meditrack-project-6io1.onrender.com
+```
+
+> Free tier kullanıldığı için inaktif kalındığında spin down olur, ilk istek 30-50 sn gecikebilir.

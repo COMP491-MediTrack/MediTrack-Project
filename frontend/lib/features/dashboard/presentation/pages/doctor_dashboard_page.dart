@@ -48,11 +48,6 @@ class DoctorDashboardPage extends StatelessWidget {
                   ),
                 ),
               ),
-              floatingActionButton: FloatingActionButton.extended(
-                onPressed: () {},
-                icon: const Icon(Icons.add),
-                label: const Text('Yeni Reçete'),
-              ),
             );
           },
         ),
@@ -195,7 +190,25 @@ class DoctorDashboardPage extends StatelessWidget {
       separatorBuilder: (_, __) => SizedBox(height: 8.h),
       itemBuilder: (context, index) {
         final patient = patients[index];
-        return Container(
+        return InkWell(
+          onTap: () {
+            final authState = context.read<AuthCubit>().state;
+            if (authState is AuthAuthenticated) {
+              context.push(
+                RouteNames.prescriptionList,
+                extra: {
+                  'patientId': patient.uid,
+                  'patientName': patient.name,
+                  'doctorExtra': {
+                    'patient': patient,
+                    'doctorName': authState.user.name,
+                  },
+                },
+              );
+            }
+          },
+          borderRadius: BorderRadius.circular(12.r),
+          child: Container(
           padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
             color: AppColors.surface,
@@ -242,6 +255,7 @@ class DoctorDashboardPage extends StatelessWidget {
               ),
               Icon(Icons.chevron_right, color: AppColors.textDisabled, size: 20.sp),
             ],
+          ),
           ),
         );
       },

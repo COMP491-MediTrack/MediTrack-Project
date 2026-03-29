@@ -10,6 +10,9 @@ import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_state.dart';
+import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
+import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
+import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
 
 class PatientDashboardPage extends StatelessWidget {
   const PatientDashboardPage({super.key});
@@ -20,6 +23,7 @@ class PatientDashboardPage extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => getIt<AuthCubit>()..checkAuthStatus()),
         BlocProvider(create: (_) => getIt<DashboardCubit>()),
+        BlocProvider(create: (_) => getIt<PrescriptionCubit>()),
       ],
       child: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
@@ -29,6 +33,7 @@ class PatientDashboardPage extends StatelessWidget {
             if (state.user.doctorId != null) {
               context.read<DashboardCubit>().loadDoctor(state.user.doctorId!);
             }
+            context.read<PrescriptionCubit>().loadPatientPrescriptions(state.user.uid);
           }
         },
         child: BlocBuilder<AuthCubit, AuthState>(
@@ -180,45 +185,132 @@ class PatientDashboardPage extends StatelessWidget {
   }
 
   Widget _buildPrescriptionsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Aktif Reçetelerim',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, authState) {
+        final user = authState is AuthAuthenticated ? authState.user : null;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Aktif Reçetelerim',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (user != null)
+                  TextButton(
+                    onPressed: () => context.push(
+                      RouteNames.prescriptionList,
+                      extra: user.uid,
+                    ),
+                    child: const Text('Tümünü Gör'),
+                  ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            BlocBuilder<PrescriptionCubit, PrescriptionState>(
+              builder: (context, state) {
+                if (state is PrescriptionLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (state is PrescriptionListLoaded) {
+                  final active = state.prescriptions
+                      .where((p) => p.isActive)
+                      .toList();
+                  if (active.isEmpty) {
+                    return _emptyPrescriptions();
+                  }
+                  return Column(
+                    children: active
+                        .take(2)
+                        .map((p) => _buildPrescriptionCard(context, p))
+                        .toList(),
+                  );
+                }
+                return _emptyPrescriptions();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _emptyPrescriptions() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(32.w),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.description_outlined, size: 48.sp, color: AppColors.textDisabled),
+          SizedBox(height: 12.h),
+          Text(
+            'Aktif reçeteniz bulunmuyor',
+            style: TextStyle(fontSize: 14.sp, color: AppColors.textSecondary),
           ),
-        ),
-        SizedBox(height: 12.h),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(32.w),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: AppColors.divider),
-          ),
-          child: Column(
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrescriptionCard(BuildContext context, PrescriptionEntity p) {
+    return GestureDetector(
+      onTap: () => context.push(RouteNames.prescriptionDetail, extra: p),
+      child: Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                Icons.description_outlined,
-                size: 48.sp,
-                color: AppColors.textDisabled,
-              ),
-              SizedBox(height: 12.h),
               Text(
-                'Aktif reçeteniz bulunmuyor',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: AppColors.textSecondary,
+                'Dr. ${p.doctorName}',
+                style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(6.r),
+                ),
+                child: Text(
+                  'Aktif',
+                  style: TextStyle(fontSize: 12.sp, color: AppColors.primary, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
           ),
-        ),
-      ],
+          SizedBox(height: 6.h),
+          Text(
+            '${p.drugs.length} ilaç',
+            style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            '${p.createdAt.day}.${p.createdAt.month}.${p.createdAt.year}',
+            style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    ),
     );
   }
 

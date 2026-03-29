@@ -47,12 +47,10 @@ lib/
 │   ├── router/        # GoRouter + route isimleri
 │   └── theme/         # AppTheme, AppColors, AppTypography, AppSpacing
 └── features/
-    ├── auth/          # Firebase Auth, login/register, rol yönetimi
-    ├── dashboard/     # Doctor & Patient dashboard
-    ├── prescription/  # Reçete oluşturma ve listeleme (yapılıyor)
-    ├── drug_search/   # İlaç arama (yapılıyor)
-    ├── ddi/           # İlaç etkileşim kontrolü (yapılıyor)
-    └── ai/            # Semptom analizi, reçete özeti (yapılıyor)
+    ├── auth/          # Firebase Auth, login/register, rol yönetimi ✅
+    ├── dashboard/     # Doctor & Patient dashboard ✅
+    ├── prescription/  # Reçete oluşturma, listeleme, DDI kontrolü ✅
+    └── ai/            # Semptom analizi, reçete özeti (yapılacak)
 ```
 
 Her feature kendi içinde:
