@@ -22,16 +22,7 @@ cd MediTrack-Project/frontend
 
 > Repoyu zaten klonladıysan `git pull` ile güncelle.
 
-**2. Firebase config dosyalarını koy:**
-
-`google-services.json` (Android) ve `GoogleService-Info.plist` (iOS) dosyaları `.gitignore`'da olduğu için repoda yoktur. Grup WhatsApp/Drive'ından alıp ilgili klasörlere koy:
-
-```
-frontend/android/app/google-services.json
-frontend/ios/Runner/GoogleService-Info.plist
-```
-
-**3. Bağımlılıkları yükle:**
+**2. Bağımlılıkları yükle:**
 ```bash
 flutter pub get
 ```

@@ -7,25 +7,31 @@ Python tabanlı ilaç arama ve ilaç-ilaç etkileşimi (DDI) servisi.
 
 ---
 
-## Gereksinimler
+## Canlı Backend
 
-- Python 3.10+
-- pip
+Backend Render'da deploy edilmiştir, ekip üyelerinin herhangi bir kurulum yapmasına gerek yoktur.
+
+```
+https://meditrack-project-6io1.onrender.com
+```
+
+Flutter uygulaması bu adrese otomatik bağlanır.
 
 ---
 
-## Kurulum
+## Yerel Geliştirme (isteğe bağlı)
 
-### 1. Repoyu klonla
+Backend kodunu değiştirmek isteyenler için:
+
+### Gereksinimler
+
+- Python 3.11+
+- pip
+
+### Kurulum
 
 ```bash
-git clone <repo-url>
 cd MediTrack-Project/backend
-```
-
-### 2. Sanal ortam oluştur ve aktive et
-
-```bash
 python -m venv .venv
 
 # macOS / Linux
@@ -33,29 +39,11 @@ source .venv/bin/activate
 
 # Windows
 .venv\Scripts\activate
-```
 
-### 3. Bağımlılıkları yükle
-
-```bash
 pip install -r requirements.txt
 ```
 
-### 4. CSV data dosyaları
-
-CSV dosyaları repoda mevcuttur (`backend/data/`), ayrıca bir şey yapman gerekmez.
-
-### 5. `.env` dosyasını oluştur
-
-```bash
-cp .env.example .env
-```
-
-Varsayılan ayarlar çalışır, değiştirmene gerek yok.
-
----
-
-## Çalıştırma
+### Çalıştırma
 
 ```bash
 uvicorn app.main:app --reload
@@ -101,7 +89,7 @@ backend/
 │   └── services/
 │       ├── drug_service.py   # CSV'den ilaç arama/barkod
 │       └── ddi_service.py    # CSV'den DDI kontrolü
-├── data/                     # ⚠️ .gitignore'da — CSV'leri buraya koy
+├── data/                     # CSV dosyaları (repoda mevcut)
 ├── .env.example              # Örnek ortam değişkenleri
 ├── .gitignore
 └── requirements.txt
@@ -127,4 +115,4 @@ Backend Render'da deploy edilmiştir:
 https://meditrack-project-6io1.onrender.com
 ```
 
-> Free tier kullanıldığı için inaktif kalındığında spin down olur, ilk istek 30-50 sn gecikebilir.
+> UptimeRobot ile her 5 dakikada bir ping atılıyor, spin down olmaz.
