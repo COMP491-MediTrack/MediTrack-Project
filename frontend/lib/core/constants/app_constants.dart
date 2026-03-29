@@ -7,7 +7,7 @@ class AppConstants {
   // Simülatörde localhost çalışır, fiziksel cihazda IP gerekir
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:8000/api/v1',
+    defaultValue: 'https://meditrack-project-6io1.onrender.com/api/v1',
   );
 
   // Firestore collections
