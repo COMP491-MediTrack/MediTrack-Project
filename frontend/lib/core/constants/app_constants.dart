@@ -2,7 +2,13 @@ class AppConstants {
   static const String appName = 'MediTrack';
 
   // FastAPI backend URL
-  static const String apiBaseUrl = 'http://localhost:8000/api/v1';
+  // Geliştirme: backend çalıştıran kişinin IP'sini gir (aynı WiFi olmalı)
+  // Örn: http://192.168.1.45:8000/api/v1
+  // Simülatörde localhost çalışır, fiziksel cihazda IP gerekir
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://meditrack-project-6io1.onrender.com/api/v1',
+  );
 
   // Firestore collections
   static const String usersCollection = 'users';

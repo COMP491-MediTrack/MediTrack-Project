@@ -180,45 +180,63 @@ class PatientDashboardPage extends StatelessWidget {
   }
 
   Widget _buildPrescriptionsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Aktif Reçetelerim',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        SizedBox(height: 12.h),
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(32.w),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: AppColors.divider),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                Icons.description_outlined,
-                size: 48.sp,
-                color: AppColors.textDisabled,
-              ),
-              SizedBox(height: 12.h),
-              Text(
-                'Aktif reçeteniz bulunmuyor',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: AppColors.textSecondary,
+    return BlocBuilder<AuthCubit, AuthState>(
+      builder: (context, authState) {
+        final user = authState is AuthAuthenticated ? authState.user : null;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Aktif Reçetelerim',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
+                if (user != null)
+                  TextButton(
+                    onPressed: () => context.push(
+                      RouteNames.prescriptionList,
+                      extra: user.uid,
+                    ),
+                    child: const Text('Tümünü Gör'),
+                  ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(32.w),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: AppColors.divider),
               ),
-            ],
-          ),
-        ),
-      ],
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.description_outlined,
+                    size: 48.sp,
+                    color: AppColors.textDisabled,
+                  ),
+                  SizedBox(height: 12.h),
+                  Text(
+                    'Aktif reçeteniz bulunmuyor',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
