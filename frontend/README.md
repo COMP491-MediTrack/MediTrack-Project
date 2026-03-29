@@ -14,22 +14,39 @@ Koç Üniversitesi COMP491 bitirme projesi. Reçete ve ilaç takip uygulaması.
 
 ### Adımlar
 
-**1. Bağımlılıkları yükle:**
+**1. Repoyu klonla ve frontend klasörüne gir:**
+```bash
+git clone https://github.com/COMP491-MediTrack/MediTrack-Project.git
+cd MediTrack-Project/frontend
+```
+
+> Repoyu zaten klonladıysan `git pull` ile güncelle.
+
+**2. Firebase config dosyalarını koy:**
+
+`google-services.json` (Android) ve `GoogleService-Info.plist` (iOS) dosyaları `.gitignore`'da olduğu için repoda yoktur. Grup WhatsApp/Drive'ından alıp ilgili klasörlere koy:
+
+```
+frontend/android/app/google-services.json
+frontend/ios/Runner/GoogleService-Info.plist
+```
+
+**3. Bağımlılıkları yükle:**
 ```bash
 flutter pub get
 ```
 
-**2. Code generation çalıştır (injectable + hive):**
+**4. Code generation çalıştır (her pull sonrası şart):**
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-**3. Uygulamayı başlat:**
+**5. Uygulamayı başlat:**
 ```bash
 flutter run
 ```
 
-> **Not:** `google-services.json` (Android) ve `GoogleService-Info.plist` (iOS) dosyaları `.gitignore`'da. Firebase Console'dan indirip ilgili klasörlere koymen gerekiyor.
+> **Backend:** Render'da canlıda, ayrıca bir şey yapman gerekmiyor. Uygulama otomatik olarak `https://meditrack-project-6io1.onrender.com` adresine bağlanır.
 
 ---
 
