@@ -3,9 +3,9 @@ class RouteNames {
   static const register = '/register';
   static const doctorDashboard = '/doctor';
   static const patientDashboard = '/patient';
-  static const prescription = '/prescription';
-  static const ddi = '/ddi';
-  static const drugSearch = '/drug-search';
+  static const createPrescription = '/prescription/create';
+  static const prescriptionList = '/prescription/list';
+  static const prescriptionDetail = '/prescription/detail';
   static const pharmacy = '/pharmacy';
   static const profile = '/profile';
 }
