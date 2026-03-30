@@ -161,6 +161,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return TextFormField(
       controller: _passwordController,
       obscureText: _obscurePassword,
+      keyboardType: TextInputType.visiblePassword,
       textInputAction: TextInputAction.done,
       decoration: InputDecoration(
         labelText: 'Şifre',

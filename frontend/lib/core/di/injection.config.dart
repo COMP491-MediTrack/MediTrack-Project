@@ -32,6 +32,16 @@ import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart'
     as _i596;
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_cubit.dart'
     as _i172;
+import 'package:meditrack/features/pharmacy/data/datasources/pharmacy_remote_data_source.dart'
+    as _i104;
+import 'package:meditrack/features/pharmacy/data/repositories/pharmacy_repository_impl.dart'
+    as _i83;
+import 'package:meditrack/features/pharmacy/domain/repositories/pharmacy_repository.dart'
+    as _i1061;
+import 'package:meditrack/features/pharmacy/domain/usecases/get_nearby_pharmacies.dart'
+    as _i556;
+import 'package:meditrack/features/pharmacy/presentation/cubit/pharmacy_cubit.dart'
+    as _i297;
 import 'package:meditrack/features/prescription/data/datasources/drug_remote_datasource.dart'
     as _i60;
 import 'package:meditrack/features/prescription/data/datasources/prescription_remote_datasource.dart'
@@ -82,8 +92,17 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i974.FirebaseFirestore>(),
               gh<_i59.FirebaseAuth>(),
             ));
+    gh.lazySingleton<_i104.PharmacyRemoteDataSource>(
+        () => _i104.PharmacyRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
+    gh.lazySingleton<_i1061.PharmacyRepository>(() =>
+        _i83.PharmacyRepositoryImpl(
+            remoteDataSource: gh<_i104.PharmacyRemoteDataSource>()));
     gh.lazySingleton<_i1038.AuthRepository>(
         () => _i549.AuthRepositoryImpl(gh<_i1020.AuthRemoteDataSource>()));
+    gh.lazySingleton<_i556.GetNearbyPharmacies>(
+        () => _i556.GetNearbyPharmacies(gh<_i1061.PharmacyRepository>()));
+    gh.factory<_i297.PharmacyCubit>(() => _i297.PharmacyCubit(
+        getNearbyPharmacies: gh<_i556.GetNearbyPharmacies>()));
     gh.lazySingleton<_i202.PrescriptionRepository>(
         () => _i482.PrescriptionRepositoryImpl(
               gh<_i60.DrugRemoteDataSource>(),

@@ -13,6 +13,7 @@ import 'package:meditrack/features/prescription/domain/entities/prescription_ent
 import 'package:meditrack/features/prescription/presentation/pages/create_prescription_page.dart';
 import 'package:meditrack/features/prescription/presentation/pages/prescription_detail_page.dart';
 import 'package:meditrack/features/prescription/presentation/pages/prescription_list_page.dart';
+import 'package:meditrack/features/pharmacy/presentation/pages/pharmacy_map_page.dart';
 
 class _AuthStreamNotifier extends ChangeNotifier {
   late final StreamSubscription<User?> _subscription;
@@ -92,6 +93,10 @@ class AppRouter {
           final prescription = state.extra as PrescriptionEntity;
           return PrescriptionDetailPage(prescription: prescription);
         },
+      ),
+      GoRoute(
+        path: RouteNames.pharmacy,
+        builder: (context, state) => const PharmacyMapPage(),
       ),
     ],
   );
