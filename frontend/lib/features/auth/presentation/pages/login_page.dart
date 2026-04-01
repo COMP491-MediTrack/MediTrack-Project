@@ -152,6 +152,7 @@ class _LoginPageState extends State<LoginPage> {
     return TextFormField(
       controller: _passwordController,
       obscureText: _obscurePassword,
+      keyboardType: TextInputType.visiblePassword,
       textInputAction: TextInputAction.done,
       decoration: InputDecoration(
         labelText: 'Şifre',

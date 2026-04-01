@@ -51,6 +51,8 @@ class PatientDashboardPage extends StatelessWidget {
                       _buildWelcomeCard(context, user),
                       SizedBox(height: 16.h),
                       _buildDoctorCard(context),
+                      SizedBox(height: 16.h),
+                      _buildPharmacyActionCard(context),
                       SizedBox(height: 24.h),
                       _buildPrescriptionsSection(context),
                     ],
@@ -59,6 +61,48 @@ class PatientDashboardPage extends StatelessWidget {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPharmacyActionCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push(RouteNames.pharmacy),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.red[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.local_pharmacy, color: Colors.red[700], size: 28.sp),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Yakın Nöbetçi Eczaneler',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red[800],
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    'Çevrenizdeki açık eczaneleri haritada görün.',
+                    style: TextStyle(fontSize: 12.sp, color: Colors.red[600]),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: Colors.red[300], size: 16.sp),
+          ],
         ),
       ),
     );
