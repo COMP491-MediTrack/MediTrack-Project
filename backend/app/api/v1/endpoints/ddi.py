@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.ddi_service import ddi_service
-from app.api.v1.schemas import DDIInteraction, DDIResponse
+from app.api.v1.schemas import DDIInteraction, DDIResponse, DDIExplainRequest, DDIExplainResponse
 
 router = APIRouter()
 
@@ -20,3 +20,16 @@ def check_ddi(request: DDIRequest):
         interactions=[DDIInteraction(**i) for i in interactions],
         has_interactions=len(interactions) > 0,
     )
+
+
+@router.post("/explain", response_model=DDIExplainResponse)
+def explain_ddi(request: DDIExplainRequest):
+    """
+    Kısa etkileşim açıklamasını alıp Gemini üzerinden doktor için detaylı açıklama metni döner.
+    """
+    explanation = ddi_service.explain_interaction_to_doctor(
+        active_ingredient_1=request.active_ingredient_1,
+        active_ingredient_2=request.active_ingredient_2,
+        short_desc=request.description
+    )
+    return DDIExplainResponse(explanation=explanation)
