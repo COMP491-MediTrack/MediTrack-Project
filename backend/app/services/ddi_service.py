@@ -43,7 +43,7 @@ class DDIService:
         model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = (
-            f"You are an expert pharmacologist and physician assistant.\n"
+            f"You are an expert pharmacologist.\n"
             f"Please explain the interaction between the following two active ingredients to a doctor in a clinical and professional tone.\n\n"
             f"Active Ingredient 1: {active_ingredient_1}\n"
             f"Active Ingredient 2: {active_ingredient_2}\n"
