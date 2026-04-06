@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.services.ddi_service import ddi_service
+from app.services.gemini_service import gemini_service
 from app.api.v1.schemas import DDIInteraction, DDIResponse, DDIExplainRequest, DDIExplainResponse
 
 router = APIRouter()
@@ -27,9 +28,15 @@ def explain_ddi(request: DDIExplainRequest):
     """
     Kısa etkileşim açıklamasını alıp Gemini üzerinden doktor için detaylı açıklama metni döner.
     """
-    explanation = ddi_service.explain_interaction_to_doctor(
-        active_ingredient_1=request.active_ingredient_1,
-        active_ingredient_2=request.active_ingredient_2,
-        short_desc=request.description
+    prompt = (
+        f"You are an expert pharmacologist.\n"
+        f"Please explain the interaction between the following two active ingredients to a doctor in a clinical and professional tone.\n\n"
+        f"Active Ingredient 1: {request.active_ingredient_1}\n"
+        f"Active Ingredient 2: {request.active_ingredient_2}\n"
+        f"Short Interaction Description: {request.description}\n\n"
+        f"In your explanation, briefly include the potential mechanism, what the doctor should watch out for, "
+        f"and any actionable dosage or clinical monitoring recommendations. Write the entire response in English."
     )
+    
+    explanation = gemini_service.generate_text(prompt)
     return DDIExplainResponse(explanation=explanation)

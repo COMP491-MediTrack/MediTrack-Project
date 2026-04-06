@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     turkish_drugs_csv: str = "data/turkish_drugs.csv"
     ddi_interactions_csv: str = "data/db_drug_interactions.csv"
     weather_api: str | None = None
-    gemini_api_key: str | None = None
+    #gemini_api_key: str | None = None
 
     class Config:
         env_file = ".env"

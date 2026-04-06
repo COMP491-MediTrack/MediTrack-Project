@@ -1,6 +1,4 @@
 import pandas as pd
-import google.generativeai as genai
-from fastapi import HTTPException
 from app.core.config import settings
 
 
@@ -35,28 +33,7 @@ class DDIService:
 
         return results
 
-    def explain_interaction_to_doctor(self, active_ingredient_1: str, active_ingredient_2: str, short_desc: str) -> str:
-        if not settings.gemini_api_key:
-            raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured in .env")
-        
-        genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
-        prompt = (
-            f"You are an expert pharmacologist.\n"
-            f"Please explain the interaction between the following two active ingredients to a doctor in a clinical and professional tone.\n\n"
-            f"Active Ingredient 1: {active_ingredient_1}\n"
-            f"Active Ingredient 2: {active_ingredient_2}\n"
-            f"Short Interaction Description: {short_desc}\n\n"
-            f"In your explanation, briefly include the potential mechanism, what the doctor should watch out for, "
-            f"and any actionable dosage or clinical monitoring recommendations. Write the entire response in English."
-        )
-        
-        try:
-            response = model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Gemini API error: {str(e)}")
+
 
 
 ddi_service = DDIService()
