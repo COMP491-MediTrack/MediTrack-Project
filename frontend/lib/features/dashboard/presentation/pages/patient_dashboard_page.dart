@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:meditrack/core/di/injection.dart';
 import 'package:meditrack/core/router/route_names.dart';
+import 'package:meditrack/core/services/notification_service.dart';
 import 'package:meditrack/core/theme/app_colors.dart';
 import 'package:meditrack/features/auth/domain/entities/user_entity.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart';
@@ -53,6 +54,10 @@ class PatientDashboardPage extends StatelessWidget {
                       _buildDoctorCard(context),
                       SizedBox(height: 16.h),
                       _buildPharmacyActionCard(context),
+                      SizedBox(height: 12.h),
+                      _buildLabResultsActionCard(context),
+                      SizedBox(height: 12.h),
+                      _buildReminderCard(context),
                       SizedBox(height: 24.h),
                       _buildPrescriptionsSection(context),
                     ],
@@ -102,6 +107,135 @@ class PatientDashboardPage extends StatelessWidget {
               ),
             ),
             Icon(Icons.arrow_forward_ios, color: Colors.red[300], size: 16.sp),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReminderCard(BuildContext context) {
+    return BlocBuilder<PrescriptionCubit, PrescriptionState>(
+      builder: (context, state) {
+        final activeDrugs = state is PrescriptionListLoaded
+            ? state.prescriptions
+                .where((p) => p.isActive)
+                .expand((p) => p.drugs)
+                .toList()
+            : [];
+
+        return GestureDetector(
+          onTap: () async {
+            final granted =
+                await NotificationService.instance.requestPermissions();
+            if (!context.mounted) return;
+            if (!granted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Bildirim izni verilmedi'),
+                    backgroundColor: Colors.orange),
+              );
+              return;
+            }
+            if (activeDrugs.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Aktif reçetenizde ilaç bulunamadı')),
+              );
+              return;
+            }
+            await NotificationService.instance.scheduleForDrugs(
+              activeDrugs
+                  .map((d) => (name: d.brandName as String, frequency: d.frequency as String))
+                  .toList(),
+            );
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    '${activeDrugs.length} ilaç için hatırlatıcı kuruldu'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          },
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: Colors.purple[50],
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.purple[200]!),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.notifications_active_outlined,
+                    color: Colors.purple[700], size: 28.sp),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Hatırlatıcıları Kur',
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple[800],
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        'İlaçlarınız için günlük bildirim alın.',
+                        style:
+                            TextStyle(fontSize: 12.sp, color: Colors.purple[600]),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios,
+                    color: Colors.purple[300], size: 16.sp),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLabResultsActionCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push(RouteNames.labResults),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.teal[50],
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.teal[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.science_outlined, color: Colors.teal[700], size: 28.sp),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Lab Sonuçlarım',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal[800],
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    'PDF yükleyin ve lab sonuçlarınızı görüntüleyin.',
+                    style: TextStyle(fontSize: 12.sp, color: Colors.teal[600]),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: Colors.teal[300], size: 16.sp),
           ],
         ),
       ),

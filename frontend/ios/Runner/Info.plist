@@ -4,6 +4,11 @@
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to location to find nearby pharmacies.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>This app needs access to location to find nearby pharmacies.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
