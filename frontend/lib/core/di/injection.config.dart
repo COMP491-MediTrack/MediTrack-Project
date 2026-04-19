@@ -34,19 +34,31 @@ import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart'
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_cubit.dart'
     as _i172;
 import 'package:meditrack/features/lab_results/data/datasources/lab_result_remote_datasource.dart'
-    as _i301;
+    as _i1017;
+import 'package:meditrack/features/lab_results/data/datasources/test_request_remote_datasource.dart'
+    as _i635;
 import 'package:meditrack/features/lab_results/data/repositories/lab_result_repository_impl.dart'
-    as _i302;
+    as _i1016;
+import 'package:meditrack/features/lab_results/data/repositories/test_request_repository_impl.dart'
+    as _i724;
 import 'package:meditrack/features/lab_results/domain/repositories/lab_result_repository.dart'
-    as _i303;
+    as _i692;
+import 'package:meditrack/features/lab_results/domain/repositories/test_request_repository.dart'
+    as _i1059;
+import 'package:meditrack/features/lab_results/domain/usecases/create_test_request.dart'
+    as _i851;
 import 'package:meditrack/features/lab_results/domain/usecases/delete_lab_result_usecase.dart'
-    as _i304;
+    as _i592;
 import 'package:meditrack/features/lab_results/domain/usecases/get_lab_results_usecase.dart'
-    as _i305;
+    as _i179;
+import 'package:meditrack/features/lab_results/domain/usecases/get_patient_test_requests.dart'
+    as _i119;
 import 'package:meditrack/features/lab_results/domain/usecases/upload_lab_result_usecase.dart'
-    as _i306;
+    as _i500;
 import 'package:meditrack/features/lab_results/presentation/cubit/lab_result_cubit.dart'
-    as _i307;
+    as _i834;
+import 'package:meditrack/features/lab_results/presentation/cubit/test_request_cubit.dart'
+    as _i139;
 import 'package:meditrack/features/pharmacy/data/datasources/pharmacy_remote_data_source.dart'
     as _i104;
 import 'package:meditrack/features/pharmacy/data/repositories/pharmacy_repository_impl.dart'
@@ -101,8 +113,15 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i59.FirebaseAuth>(),
               gh<_i974.FirebaseFirestore>(),
             ));
+    gh.lazySingleton<_i635.TestRequestRemoteDatasource>(() =>
+        _i635.TestRequestRemoteDatasourceImpl(gh<_i974.FirebaseFirestore>()));
     gh.factory<_i172.DashboardCubit>(
         () => _i172.DashboardCubit(gh<_i974.FirebaseFirestore>()));
+    gh.lazySingleton<_i1017.LabResultRemoteDataSource>(
+        () => _i1017.LabResultRemoteDataSourceImpl(
+              gh<_i974.FirebaseFirestore>(),
+              gh<_i457.FirebaseStorage>(),
+            ));
     gh.lazySingleton<_i607.PrescriptionRemoteDataSource>(
         () => _i607.PrescriptionRemoteDataSourceImpl(
               gh<_i974.FirebaseFirestore>(),
@@ -110,20 +129,16 @@ extension GetItInjectableX on _i174.GetIt {
             ));
     gh.lazySingleton<_i104.PharmacyRemoteDataSource>(
         () => _i104.PharmacyRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
-    gh.lazySingleton<_i301.LabResultRemoteDataSource>(
-        () => _i301.LabResultRemoteDataSourceImpl(
-              gh<_i974.FirebaseFirestore>(),
-              gh<_i457.FirebaseStorage>(),
-            ));
     gh.lazySingleton<_i1061.PharmacyRepository>(() =>
         _i83.PharmacyRepositoryImpl(
             remoteDataSource: gh<_i104.PharmacyRemoteDataSource>()));
     gh.lazySingleton<_i1038.AuthRepository>(
         () => _i549.AuthRepositoryImpl(gh<_i1020.AuthRemoteDataSource>()));
-    gh.lazySingleton<_i303.LabResultRepository>(
-        () => _i302.LabResultRepositoryImpl(
-              gh<_i301.LabResultRemoteDataSource>(),
-            ));
+    gh.lazySingleton<_i692.LabResultRepository>(() =>
+        _i1016.LabResultRepositoryImpl(gh<_i1017.LabResultRemoteDataSource>()));
+    gh.lazySingleton<_i1059.TestRequestRepository>(() =>
+        _i724.TestRequestRepositoryImpl(
+            gh<_i635.TestRequestRemoteDatasource>()));
     gh.lazySingleton<_i556.GetNearbyPharmacies>(
         () => _i556.GetNearbyPharmacies(gh<_i1061.PharmacyRepository>()));
     gh.factory<_i297.PharmacyCubit>(() => _i297.PharmacyCubit(
@@ -133,12 +148,6 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i60.DrugRemoteDataSource>(),
               gh<_i607.PrescriptionRemoteDataSource>(),
             ));
-    gh.lazySingleton<_i305.GetLabResultsUseCase>(
-        () => _i305.GetLabResultsUseCase(gh<_i303.LabResultRepository>()));
-    gh.lazySingleton<_i306.UploadLabResultUseCase>(
-        () => _i306.UploadLabResultUseCase(gh<_i303.LabResultRepository>()));
-    gh.lazySingleton<_i304.DeleteLabResultUseCase>(
-        () => _i304.DeleteLabResultUseCase(gh<_i303.LabResultRepository>()));
     gh.lazySingleton<_i92.SearchDrugsUseCase>(
         () => _i92.SearchDrugsUseCase(gh<_i202.PrescriptionRepository>()));
     gh.lazySingleton<_i23.CheckDdiUseCase>(
@@ -151,6 +160,16 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i872.GetPatientPrescriptionsUseCase>(() =>
         _i872.GetPatientPrescriptionsUseCase(
             gh<_i202.PrescriptionRepository>()));
+    gh.lazySingleton<_i119.GetPatientTestRequests>(
+        () => _i119.GetPatientTestRequests(gh<_i1059.TestRequestRepository>()));
+    gh.lazySingleton<_i851.CreateTestRequest>(
+        () => _i851.CreateTestRequest(gh<_i1059.TestRequestRepository>()));
+    gh.lazySingleton<_i179.GetLabResultsUseCase>(
+        () => _i179.GetLabResultsUseCase(gh<_i692.LabResultRepository>()));
+    gh.lazySingleton<_i500.UploadLabResultUseCase>(
+        () => _i500.UploadLabResultUseCase(gh<_i692.LabResultRepository>()));
+    gh.lazySingleton<_i592.DeleteLabResultUseCase>(
+        () => _i592.DeleteLabResultUseCase(gh<_i692.LabResultRepository>()));
     gh.lazySingleton<_i1050.RegisterUseCase>(
         () => _i1050.RegisterUseCase(gh<_i1038.AuthRepository>()));
     gh.lazySingleton<_i852.LoginUseCase>(
@@ -166,10 +185,14 @@ extension GetItInjectableX on _i174.GetIt {
           gh<_i468.LogoutUseCase>(),
           gh<_i1038.AuthRepository>(),
         ));
-    gh.factory<_i307.LabResultCubit>(() => _i307.LabResultCubit(
-          gh<_i305.GetLabResultsUseCase>(),
-          gh<_i306.UploadLabResultUseCase>(),
-          gh<_i304.DeleteLabResultUseCase>(),
+    gh.factory<_i139.TestRequestCubit>(() => _i139.TestRequestCubit(
+          gh<_i851.CreateTestRequest>(),
+          gh<_i119.GetPatientTestRequests>(),
+        ));
+    gh.factory<_i834.LabResultCubit>(() => _i834.LabResultCubit(
+          gh<_i179.GetLabResultsUseCase>(),
+          gh<_i500.UploadLabResultUseCase>(),
+          gh<_i592.DeleteLabResultUseCase>(),
         ));
     gh.factory<_i840.PrescriptionCubit>(() => _i840.PrescriptionCubit(
           gh<_i92.SearchDrugsUseCase>(),

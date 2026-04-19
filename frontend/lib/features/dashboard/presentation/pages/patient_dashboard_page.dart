@@ -220,7 +220,7 @@ class PatientDashboardPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Lab Sonuçlarım',
+                    'Lab Sonuçları & İstekler',
                     style: TextStyle(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.bold,
@@ -229,7 +229,7 @@ class PatientDashboardPage extends StatelessWidget {
                   ),
                   SizedBox(height: 2.h),
                   Text(
-                    'PDF yükleyin ve lab sonuçlarınızı görüntüleyin.',
+                    'Doktorunuzun eklediği lab sonuçlarını ve tahlil isteklerini görüntüleyin.',
                     style: TextStyle(fontSize: 12.sp, color: Colors.teal[600]),
                   ),
                 ],

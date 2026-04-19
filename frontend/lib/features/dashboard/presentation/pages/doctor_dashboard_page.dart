@@ -194,17 +194,7 @@ class DoctorDashboardPage extends StatelessWidget {
           onTap: () {
             final authState = context.read<AuthCubit>().state;
             if (authState is AuthAuthenticated) {
-              context.push(
-                RouteNames.prescriptionList,
-                extra: {
-                  'patientId': patient.uid,
-                  'patientName': patient.name,
-                  'doctorExtra': {
-                    'patient': patient,
-                    'doctorName': authState.user.name,
-                  },
-                },
-              );
+              _showPatientOptions(context, patient, authState.user);
             }
           },
           borderRadius: BorderRadius.circular(12.r),
@@ -269,5 +259,83 @@ class DoctorDashboardPage extends StatelessWidget {
       'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
     ];
     return '${now.day} ${months[now.month - 1]} ${now.year}';
+  }
+
+  void _showPatientOptions(BuildContext context, UserEntity patient, UserEntity doctor) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (BuildContext bottomSheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 20.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Hasta: ${patient.name}',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                ListTile(
+                  leading: Icon(Icons.description_outlined, color: AppColors.primary),
+                  title: const Text('Reçeteler'),
+                  onTap: () {
+                    Navigator.pop(bottomSheetContext);
+                    context.push(
+                      RouteNames.prescriptionList,
+                      extra: {
+                        'patientId': patient.uid,
+                        'patientName': patient.name,
+                        'doctorExtra': {
+                          'patient': patient,
+                          'doctorName': doctor.name,
+                        },
+                      },
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.science_outlined, color: Colors.teal),
+                  title: const Text('Tahliller & İstekler'),
+                  onTap: () {
+                    Navigator.pop(bottomSheetContext);
+                    context.push(
+                      RouteNames.labResults,
+                      extra: {
+                        'patientId': patient.uid,
+                        'patientName': patient.name,
+                        'isDoctor': true,
+                      },
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.assignment_add, color: Colors.orange),
+                  title: const Text('Tahlil İsteği Oluştur'),
+                  onTap: () {
+                    Navigator.pop(bottomSheetContext);
+                    context.push(
+                      RouteNames.createTestRequest,
+                      extra: {
+                        'patient': patient,
+                        'doctorId': doctor.uid,
+                        'doctorName': doctor.name,
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
