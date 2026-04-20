@@ -53,6 +53,8 @@ class PatientDashboardPage extends StatelessWidget {
                       _buildDoctorCard(context),
                       SizedBox(height: 16.h),
                       _buildPharmacyActionCard(context),
+                      SizedBox(height: 16.h),
+                      _buildScheduleActionCard(context, user),
                       SizedBox(height: 24.h),
                       _buildPrescriptionsSection(context),
                     ],
@@ -102,6 +104,49 @@ class PatientDashboardPage extends StatelessWidget {
               ),
             ),
             Icon(Icons.arrow_forward_ios, color: Colors.red[300], size: 16.sp),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScheduleActionCard(BuildContext context, UserEntity? user) {
+    if (user == null) return const SizedBox.shrink();
+    return GestureDetector(
+      onTap: () => context.push(RouteNames.medicineSchedule, extra: user.uid),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColors.primary.withAlpha(51)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_month_outlined, color: AppColors.primary, size: 28.sp),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'İlaç Takvimim ve Stoklar',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    'Haftalık programınızı ve ilaç stok durumunuzu görün.',
+                    style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: AppColors.primary, size: 16.sp),
           ],
         ),
       ),
