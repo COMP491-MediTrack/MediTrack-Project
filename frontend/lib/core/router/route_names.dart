@@ -8,4 +8,6 @@ class RouteNames {
   static const prescriptionDetail = '/prescription/detail';
   static const pharmacy = '/pharmacy';
   static const profile = '/profile';
+  static const labResults = '/lab-results';
+  static const createTestRequest = '/test-request/create';
 }
