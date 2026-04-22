@@ -23,3 +23,13 @@ class DDIResponse(BaseModel):
     drugs: list[str]
     interactions: list[DDIInteraction]
     has_interactions: bool
+
+
+class DDIExplainRequest(BaseModel):
+    active_ingredient_1: str
+    active_ingredient_2: str
+    description: str
+
+
+class DDIExplainResponse(BaseModel):
+    explanation: str
