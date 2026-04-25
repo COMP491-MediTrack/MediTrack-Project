@@ -27,6 +27,7 @@ class WeatherService:
                     "feels_like": data.get("main", {}).get("feels_like"),
                     "humidity": data.get("main", {}).get("humidity"),
                     "description": data.get("weather", [{}])[0].get("description"),
+                    "weather_main": data.get("weather", [{}])[0].get("main"),
                     "city": data.get("name"),
                     "country": data.get("sys", {}).get("country"),
                     "wind_speed": data.get("wind", {}).get("speed"),
