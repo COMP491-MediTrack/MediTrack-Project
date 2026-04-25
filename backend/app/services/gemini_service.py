@@ -8,7 +8,7 @@ class GeminiService:
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured in .env")
         
         genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         try:
             response = model.generate_content(prompt)
