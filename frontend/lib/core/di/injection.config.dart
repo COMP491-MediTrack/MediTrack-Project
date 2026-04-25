@@ -89,6 +89,10 @@ import 'package:meditrack/features/prescription/domain/usecases/search_drugs_use
     as _i92;
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart'
     as _i840;
+import 'package:meditrack/features/weather/data/repositories/weather_repository.dart'
+    as _i625;
+import 'package:meditrack/features/weather/presentation/cubit/weather_cubit.dart'
+    as _i711;
 
 extension GetItInjectableX on _i174.GetIt {
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -108,6 +112,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i361.Dio>(() => firebaseModule.dio);
     gh.lazySingleton<_i60.DrugRemoteDataSource>(
         () => _i60.DrugRemoteDataSourceImpl(gh<_i361.Dio>()));
+    gh.lazySingleton<_i625.WeatherRepository>(
+        () => _i625.WeatherRepositoryImpl(gh<_i361.Dio>()));
     gh.lazySingleton<_i1020.AuthRemoteDataSource>(
         () => _i1020.AuthRemoteDataSourceImpl(
               gh<_i59.FirebaseAuth>(),
@@ -117,6 +123,8 @@ extension GetItInjectableX on _i174.GetIt {
         _i635.TestRequestRemoteDatasourceImpl(gh<_i974.FirebaseFirestore>()));
     gh.factory<_i172.DashboardCubit>(
         () => _i172.DashboardCubit(gh<_i974.FirebaseFirestore>()));
+    gh.factory<_i711.WeatherCubit>(
+        () => _i711.WeatherCubit(gh<_i625.WeatherRepository>()));
     gh.lazySingleton<_i1017.LabResultRemoteDataSource>(
         () => _i1017.LabResultRemoteDataSourceImpl(
               gh<_i974.FirebaseFirestore>(),
@@ -148,8 +156,6 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i60.DrugRemoteDataSource>(),
               gh<_i607.PrescriptionRemoteDataSource>(),
             ));
-    gh.lazySingleton<_i92.SearchDrugsUseCase>(
-        () => _i92.SearchDrugsUseCase(gh<_i202.PrescriptionRepository>()));
     gh.lazySingleton<_i23.CheckDdiUseCase>(
         () => _i23.CheckDdiUseCase(gh<_i202.PrescriptionRepository>()));
     gh.lazySingleton<_i118.CreatePrescriptionUseCase>(() =>
@@ -160,24 +166,26 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i872.GetPatientPrescriptionsUseCase>(() =>
         _i872.GetPatientPrescriptionsUseCase(
             gh<_i202.PrescriptionRepository>()));
-    gh.lazySingleton<_i119.GetPatientTestRequests>(
-        () => _i119.GetPatientTestRequests(gh<_i1059.TestRequestRepository>()));
+    gh.lazySingleton<_i92.SearchDrugsUseCase>(
+        () => _i92.SearchDrugsUseCase(gh<_i202.PrescriptionRepository>()));
     gh.lazySingleton<_i851.CreateTestRequest>(
         () => _i851.CreateTestRequest(gh<_i1059.TestRequestRepository>()));
+    gh.lazySingleton<_i119.GetPatientTestRequests>(
+        () => _i119.GetPatientTestRequests(gh<_i1059.TestRequestRepository>()));
+    gh.lazySingleton<_i592.DeleteLabResultUseCase>(
+        () => _i592.DeleteLabResultUseCase(gh<_i692.LabResultRepository>()));
     gh.lazySingleton<_i179.GetLabResultsUseCase>(
         () => _i179.GetLabResultsUseCase(gh<_i692.LabResultRepository>()));
     gh.lazySingleton<_i500.UploadLabResultUseCase>(
         () => _i500.UploadLabResultUseCase(gh<_i692.LabResultRepository>()));
-    gh.lazySingleton<_i592.DeleteLabResultUseCase>(
-        () => _i592.DeleteLabResultUseCase(gh<_i692.LabResultRepository>()));
-    gh.lazySingleton<_i1050.RegisterUseCase>(
-        () => _i1050.RegisterUseCase(gh<_i1038.AuthRepository>()));
+    gh.lazySingleton<_i8.GetCurrentUserUseCase>(
+        () => _i8.GetCurrentUserUseCase(gh<_i1038.AuthRepository>()));
     gh.lazySingleton<_i852.LoginUseCase>(
         () => _i852.LoginUseCase(gh<_i1038.AuthRepository>()));
     gh.lazySingleton<_i468.LogoutUseCase>(
         () => _i468.LogoutUseCase(gh<_i1038.AuthRepository>()));
-    gh.lazySingleton<_i8.GetCurrentUserUseCase>(
-        () => _i8.GetCurrentUserUseCase(gh<_i1038.AuthRepository>()));
+    gh.lazySingleton<_i1050.RegisterUseCase>(
+        () => _i1050.RegisterUseCase(gh<_i1038.AuthRepository>()));
     gh.factory<_i596.AuthCubit>(() => _i596.AuthCubit(
           gh<_i852.LoginUseCase>(),
           gh<_i1050.RegisterUseCase>(),
