@@ -71,26 +71,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<List<UserModel>> getDoctors() async {
-    try {
-      final snapshot = await _firestore
-          .collection(AppConstants.usersCollection)
-          .where('role', isEqualTo: AppConstants.roleDoctor)
-          .get();
-      return snapshot.docs
-          .map((doc) => UserModel.fromFirestore(doc.data(), doc.id))
-          .toList();
-    } catch (e) {
-      // Dev bypass: If Firebase rules deny access, return a dummy doctor
-      // so the user can test the app locally without updating rules.
-      return [
-        const UserModel(
-          uid: 'demo-doctor-id',
-          email: 'demo@doktor.com',
-          name: 'Demo Doktor',
-          role: AppConstants.roleDoctor,
-        )
-      ];
-    }
+    final snapshot = await _firestore
+        .collection(AppConstants.usersCollection)
+        .where('role', isEqualTo: AppConstants.roleDoctor)
+        .get();
+    return snapshot.docs
+        .map((doc) => UserModel.fromFirestore(doc.data(), doc.id))
+        .toList();
   }
 
   @override
