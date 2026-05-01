@@ -30,6 +30,23 @@ class PrescriptionListPage extends StatelessWidget {
         appBar: AppBar(
           title: Text(isDoctor && patientName != null ? patientName! : 'Reçetelerim'),
           centerTitle: true,
+          actions: isDoctor
+              ? [
+                  IconButton(
+                    icon: const Icon(Icons.science_outlined),
+                    tooltip: 'Lab Sonuçları',
+                    onPressed: () => context.push(
+                      RouteNames.labResults,
+                      extra: {
+                        'patientId': patientId,
+                        'patientName': patientName,
+                        'isDoctor': true,
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                ]
+              : null,
         ),
         floatingActionButton: isDoctor
             ? FloatingActionButton.extended(

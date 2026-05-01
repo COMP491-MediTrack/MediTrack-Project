@@ -7,7 +7,7 @@ class AppConstants {
   // Simülatörde localhost çalışır, fiziksel cihazda IP gerekir
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.1.55:8000/api/v1',
+    defaultValue: 'https://172.21.184.230:8000/api/v1' 
   );
 
   // Firestore collections

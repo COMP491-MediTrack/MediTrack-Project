@@ -13,6 +13,8 @@ import 'package:meditrack/features/prescription/domain/entities/prescription_ent
 import 'package:meditrack/features/prescription/presentation/pages/create_prescription_page.dart';
 import 'package:meditrack/features/prescription/presentation/pages/prescription_detail_page.dart';
 import 'package:meditrack/features/prescription/presentation/pages/prescription_list_page.dart';
+import 'package:meditrack/features/lab_results/presentation/pages/lab_results_page.dart';
+import 'package:meditrack/features/lab_results/presentation/pages/create_test_request_page.dart';
 import 'package:meditrack/features/pharmacy/presentation/pages/pharmacy_map_page.dart';
 import 'package:meditrack/features/dashboard/presentation/pages/medicine_schedule_page.dart';
 
@@ -104,6 +106,25 @@ class AppRouter {
         builder: (context, state) {
           final patientId = state.extra as String;
           return MedicineSchedulePage(patientId: patientId);
+        path: RouteNames.labResults,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return LabResultsPage(
+            patientId: extra?['patientId'] as String?,
+            patientName: extra?['patientName'] as String?,
+            isDoctor: extra?['isDoctor'] as bool? ?? false,
+          );
+        },
+      ),
+      GoRoute(
+        path: RouteNames.createTestRequest,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return CreateTestRequestPage(
+            patient: extra['patient'] as UserEntity,
+            doctorId: extra['doctorId'] as String,
+            doctorName: extra['doctorName'] as String,
+          );
         },
       ),
     ],
