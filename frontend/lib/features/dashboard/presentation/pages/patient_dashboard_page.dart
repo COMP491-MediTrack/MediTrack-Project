@@ -34,7 +34,9 @@ class PatientDashboardPage extends StatelessWidget {
             if (state.user.doctorId != null) {
               context.read<DashboardCubit>().loadDoctor(state.user.doctorId!);
             }
-            context.read<PrescriptionCubit>().loadPatientPrescriptions(state.user.uid);
+            context.read<PrescriptionCubit>().loadPatientPrescriptions(
+              state.user.uid,
+            );
           }
         },
         child: BlocBuilder<AuthCubit, AuthState>(
@@ -119,45 +121,104 @@ class PatientDashboardPage extends StatelessWidget {
     if (user == null) return const SizedBox.shrink();
     return GestureDetector(
       onTap: () => context.push(RouteNames.medicineSchedule, extra: user.uid),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColors.primary.withAlpha(51)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_month_outlined,
+              color: AppColors.primary,
+              size: 28.sp,
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'İlaç Takvimim ve Stoklar',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    'Haftalık programınızı ve ilaç stok durumunuzu görün.',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: AppColors.primary,
+              size: 16.sp,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildReminderCard(BuildContext context) {
     return BlocBuilder<PrescriptionCubit, PrescriptionState>(
       builder: (context, state) {
         final activeDrugs = state is PrescriptionListLoaded
             ? state.prescriptions
-                .where((p) => p.isActive)
-                .expand((p) => p.drugs)
-                .toList()
+                  .where((p) => p.isActive)
+                  .expand((p) => p.drugs)
+                  .toList()
             : [];
 
         return GestureDetector(
           onTap: () async {
-            final granted =
-                await NotificationService.instance.requestPermissions();
+            final granted = await NotificationService.instance
+                .requestPermissions();
             if (!context.mounted) return;
             if (!granted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content: Text('Bildirim izni verilmedi'),
-                    backgroundColor: Colors.orange),
+                  content: Text('Bildirim izni verilmedi'),
+                  backgroundColor: Colors.orange,
+                ),
               );
               return;
             }
             if (activeDrugs.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Aktif reçetenizde ilaç bulunamadı')),
+                const SnackBar(
+                  content: Text('Aktif reçetenizde ilaç bulunamadı'),
+                ),
               );
               return;
             }
             await NotificationService.instance.scheduleForDrugs(
               activeDrugs
-                  .map((d) => (name: d.brandName as String, frequency: d.frequency as String))
+                  .map(
+                    (d) => (
+                      name: d.brandName as String,
+                      frequency: d.frequency as String,
+                    ),
+                  )
                   .toList(),
             );
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                    '${activeDrugs.length} ilaç için hatırlatıcı kuruldu'),
+                  '${activeDrugs.length} ilaç için hatırlatıcı kuruldu',
+                ),
                 backgroundColor: AppColors.success,
               ),
             );
@@ -172,8 +233,11 @@ class PatientDashboardPage extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.notifications_active_outlined,
-                    color: Colors.purple[700], size: 28.sp),
+                Icon(
+                  Icons.notifications_active_outlined,
+                  color: Colors.purple[700],
+                  size: 28.sp,
+                ),
                 SizedBox(width: 12.w),
                 Expanded(
                   child: Column(
@@ -190,14 +254,19 @@ class PatientDashboardPage extends StatelessWidget {
                       SizedBox(height: 2.h),
                       Text(
                         'İlaçlarınız için günlük bildirim alın.',
-                        style:
-                            TextStyle(fontSize: 12.sp, color: Colors.purple[600]),
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: Colors.purple[600],
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios,
-                    color: Colors.purple[300], size: 16.sp),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.purple[300],
+                  size: 16.sp,
+                ),
               ],
             ),
           ),
@@ -213,13 +282,6 @@ class PatientDashboardPage extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: AppColors.primaryLight,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.primary.withAlpha(51)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.calendar_month_outlined, color: AppColors.primary, size: 28.sp),
           color: Colors.teal[50],
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: Colors.teal[200]!),
@@ -233,11 +295,6 @@ class PatientDashboardPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'İlaç Takvimim ve Stoklar',
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
                     'Lab Sonuçları & İstekler',
                     style: TextStyle(
                       fontSize: 15.sp,
@@ -247,13 +304,6 @@ class PatientDashboardPage extends StatelessWidget {
                   ),
                   SizedBox(height: 2.h),
                   Text(
-                    'Haftalık programınızı ve ilaç stok durumunuzu görün.',
-                    style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios, color: AppColors.primary, size: 16.sp),
                     'Doktorunuzun eklediği lab sonuçlarını ve tahlil isteklerini görüntüleyin.',
                     style: TextStyle(fontSize: 12.sp, color: Colors.teal[600]),
                   ),
@@ -313,8 +363,11 @@ class PatientDashboardPage extends StatelessWidget {
           SizedBox(height: 12.h),
           Row(
             children: [
-              const Icon(Icons.calendar_today_outlined,
-                  color: Colors.white70, size: 14),
+              const Icon(
+                Icons.calendar_today_outlined,
+                color: Colors.white70,
+                size: 14,
+              ),
               SizedBox(width: 6.w),
               Text(
                 _todayFormatted(),
@@ -455,7 +508,11 @@ class PatientDashboardPage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Icons.description_outlined, size: 48.sp, color: AppColors.textDisabled),
+          Icon(
+            Icons.description_outlined,
+            size: 48.sp,
+            color: AppColors.textDisabled,
+          ),
           SizedBox(height: 12.h),
           Text(
             'Aktif reçeteniz bulunmuyor',
@@ -470,58 +527,75 @@ class PatientDashboardPage extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push(RouteNames.prescriptionDetail, extra: p),
       child: Container(
-      width: double.infinity,
-      margin: EdgeInsets.only(bottom: 8.h),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppColors.divider),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Dr. ${p.doctorName}',
-                style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(6.r),
+        width: double.infinity,
+        margin: EdgeInsets.only(bottom: 8.h),
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Dr. ${p.doctorName}',
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                child: Text(
-                  'Aktif',
-                  style: TextStyle(fontSize: 12.sp, color: AppColors.primary, fontWeight: FontWeight.w600),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
+                  child: Text(
+                    'Aktif',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 6.h),
-          Text(
-            '${p.drugs.length} ilaç',
-            style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            '${p.createdAt.day}.${p.createdAt.month}.${p.createdAt.year}',
-            style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
-          ),
-        ],
+              ],
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              '${p.drugs.length} ilaç',
+              style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              '${p.createdAt.day}.${p.createdAt.month}.${p.createdAt.year}',
+              style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
   String _todayFormatted() {
     final now = DateTime.now();
     const months = [
-      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+      'Ocak',
+      'Şubat',
+      'Mart',
+      'Nisan',
+      'Mayıs',
+      'Haziran',
+      'Temmuz',
+      'Ağustos',
+      'Eylül',
+      'Ekim',
+      'Kasım',
+      'Aralık',
     ];
     return '${now.day} ${months[now.month - 1]} ${now.year}';
   }

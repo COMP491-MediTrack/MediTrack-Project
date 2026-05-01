@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../models/pharmacy_model.dart';
 import '../../../../core/errors/exceptions.dart';
-import '../../../../core/constants/app_constants.dart';
 
 abstract class PharmacyRemoteDataSource {
   Future<List<PharmacyModel>> getOnDutyPharmacies(String city);
@@ -18,10 +17,10 @@ class PharmacyRemoteDataSourceImpl implements PharmacyRemoteDataSource {
   Future<List<PharmacyModel>> getOnDutyPharmacies(String city) async {
     try {
       final response = await dio.get(
-        '${AppConstants.apiBaseUrl}/pharmacies/on-duty',
+        '/pharmacies/on-duty',
         queryParameters: {'city': city},
       );
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => PharmacyModel.fromJson(json)).toList();

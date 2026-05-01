@@ -50,6 +50,10 @@ class PharmacyService:
             raise ValueError(f"Failed to fetch pharmacies from eczaneler.gen.tr. Status: {response.status_code}")
             
         soup = BeautifulSoup(response.text, "html.parser")
+
+        pharmacies = cls._extract_pharmacies(soup)
+        if pharmacies:
+            return pharmacies
         
         district_links = soup.select('div.well ul.list-unstyled li a.aok')
         # If there are district links on the main page, fetch them all concurrently
@@ -89,6 +93,40 @@ class PharmacyService:
     @classmethod
     def _extract_pharmacies(cls, soup: BeautifulSoup) -> List[Dict[str, Any]]:
         pharmacies = []
+
+        for row in soup.select("tr"):
+            name_el = row.select_one("span.isim")
+            if not name_el:
+                continue
+
+            name = name_el.get_text(" ", strip=True)
+            address_el = row.select_one("div.col-lg-6")
+            phone_el = row.select_one("div.col-lg-3.py-lg-2")
+            badge_el = row.select_one("span.bg-info")
+
+            address = address_el.get_text(" ", strip=True) if address_el else ""
+            phone = phone_el.get_text(" ", strip=True) if phone_el else ""
+            district = badge_el.get_text(" ", strip=True) if badge_el else ""
+
+            if not phone:
+                phone_match = re.search(
+                    r"0?\s?\(?\s?[1-9]\d{2}\s?\)?\s?\d{3}\s?[-]?\s?\d{2}\s?[-]?\s?\d{2}",
+                    row.get_text(" ", strip=True),
+                )
+                phone = phone_match.group(0).strip() if phone_match else ""
+
+            if name and len(name) > 2:
+                pharmacies.append({
+                    "name": name,
+                    "address": address,
+                    "phone": phone,
+                    "district": district,
+                    "lat": 0.0,
+                    "lng": 0.0,
+                })
+
+        if pharmacies:
+            return pharmacies
         
         rows = soup.select('div.card')
         if not rows:

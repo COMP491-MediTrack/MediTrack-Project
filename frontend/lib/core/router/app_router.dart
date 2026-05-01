@@ -106,6 +106,9 @@ class AppRouter {
         builder: (context, state) {
           final patientId = state.extra as String;
           return MedicineSchedulePage(patientId: patientId);
+        },
+      ),
+      GoRoute(
         path: RouteNames.labResults,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;

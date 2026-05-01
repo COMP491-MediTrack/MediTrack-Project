@@ -2,12 +2,12 @@ class AppConstants {
   static const String appName = 'MediTrack';
 
   // FastAPI backend URL
-  // Geliştirme: backend çalıştıran kişinin IP'sini gir (aynı WiFi olmalı)
-  // Örn: http://192.168.1.45:8000/api/v1
-  // Simülatörde localhost çalışır, fiziksel cihazda IP gerekir
+  // Production backend deployed on Render.
+  // Local testing can override this with:
+  // flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://172.21.184.230:8000/api/v1' 
+    defaultValue: 'https://meditrack-project-6io1.onrender.com/api/v1',
   );
 
   // Firestore collections
