@@ -6,7 +6,7 @@ import '../models/pharmacy_model.dart';
 import '../../../../core/errors/exceptions.dart';
 
 abstract class PharmacyRemoteDataSource {
-  Future<List<PharmacyModel>> getOnDutyPharmacies(String city);
+  Future<List<PharmacyModel>> getOnDutyPharmacies(String city, {String? district});
 }
 
 @LazySingleton(as: PharmacyRemoteDataSource)
@@ -16,16 +16,19 @@ class PharmacyRemoteDataSourceImpl implements PharmacyRemoteDataSource {
   PharmacyRemoteDataSourceImpl({required this.dio});
 
   @override
-  Future<List<PharmacyModel>> getOnDutyPharmacies(String city) async {
+  Future<List<PharmacyModel>> getOnDutyPharmacies(String city, {String? district}) async {
     try {
       assert(() {
-        developer.log('Fetching on-duty pharmacies for city: $city');
+        developer.log('Fetching on-duty pharmacies for city: $city, district: $district');
         return true;
       }());
 
+      final queryParams = <String, dynamic>{'city': city};
+      if (district != null && district.isNotEmpty) queryParams['district'] = district;
+
       final response = await dio.get(
         '/pharmacies/on-duty',
-        queryParameters: {'city': city},
+        queryParameters: queryParams,
       );
 
       if (response.statusCode == 200) {

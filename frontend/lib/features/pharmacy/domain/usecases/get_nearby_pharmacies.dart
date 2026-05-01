@@ -81,13 +81,26 @@ class GetNearbyPharmacies {
 
       // In Turkey, administrativeArea is usually the province name e.g. "İstanbul"
 
-      // 4. Fetch Pharmacies for City
-      final fallbackCity = 'istanbul'; // just in case
+      // 4. Detect district before API call so we can pass it to backend
+      String rawDistrict = isInTurkey
+          ? (placemark.subAdministrativeArea ?? '')
+          : '';
+      if (rawDistrict.isEmpty ||
+          rawDistrict.toLowerCase() == city.toLowerCase()) {
+        rawDistrict = isInTurkey ? (placemark.locality ?? '') : '';
+      }
+      if (rawDistrict.toLowerCase() == city.toLowerCase()) {
+        rawDistrict = isInTurkey ? (placemark.subLocality ?? '') : '';
+      }
+
+      // 5. Fetch Pharmacies for City (+ district to avoid backend timeout)
+      final fallbackCity = 'istanbul';
       final result = await repository.getOnDutyPharmacies(
         city.isNotEmpty ? city : fallbackCity,
+        district: rawDistrict.isNotEmpty ? rawDistrict : null,
       );
 
-      // 5. Filter, Geocode and Calculate distances
+      // 6. Filter, Geocode and Calculate distances
       return await result.fold((failure) async => Left(failure), (
         pharmacies,
       ) async {
@@ -98,18 +111,6 @@ class GetNearbyPharmacies {
         }).toList();
 
         // B. Filter by user's district to reduce geocoding calls
-        // On some iOS simulators, subAdministrativeArea might be empty, or locality might be the Ilce.
-        // Let's check both!
-        String rawDistrict = isInTurkey
-            ? (placemark.subAdministrativeArea ?? '')
-            : '';
-        if (rawDistrict.isEmpty ||
-            rawDistrict.toLowerCase() == city.toLowerCase()) {
-          rawDistrict = isInTurkey ? (placemark.locality ?? '') : '';
-        }
-        if (rawDistrict.toLowerCase() == city.toLowerCase()) {
-          rawDistrict = isInTurkey ? (placemark.subLocality ?? '') : '';
-        }
         assert(() {
           developer.log('Detected pharmacy district: $rawDistrict');
           developer.log(

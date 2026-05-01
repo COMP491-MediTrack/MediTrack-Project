@@ -13,9 +13,9 @@ class PharmacyRepositoryImpl implements PharmacyRepository {
   PharmacyRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, List<Pharmacy>>> getOnDutyPharmacies(String city) async {
+  Future<Either<Failure, List<Pharmacy>>> getOnDutyPharmacies(String city, {String? district}) async {
     try {
-      final remotePharmacies = await remoteDataSource.getOnDutyPharmacies(city);
+      final remotePharmacies = await remoteDataSource.getOnDutyPharmacies(city, district: district);
       return Right(remotePharmacies);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message ?? 'Server error occurred'));
