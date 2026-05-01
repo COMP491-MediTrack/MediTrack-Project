@@ -55,7 +55,7 @@ class PharmacyService:
         if pharmacies:
             return pharmacies
         
-        district_links = soup.select('div.well ul.list-unstyled li a.aok')
+        district_links = soup.select('nav ul li a[href*="/nobetci-"]')
         # If there are district links on the main page, fetch them all concurrently
         if district_links:
             import asyncio
@@ -86,9 +86,14 @@ class PharmacyService:
             all_pharmacies = []
             for r in results:
                 all_pharmacies.extend(r)
-            return all_pharmacies
-        else:
-            return cls._extract_pharmacies(soup)
+            if all_pharmacies:
+                return all_pharmacies
+
+        raise ValueError(
+            "No pharmacies parsed from eczaneler.gen.tr "
+            f"for city={city!r}, url={url!r}, status={response.status_code}, "
+            f"body_preview={response.text[:300]!r}"
+        )
 
     @classmethod
     def _extract_pharmacies(cls, soup: BeautifulSoup) -> List[Dict[str, Any]]:
@@ -102,7 +107,7 @@ class PharmacyService:
             name = name_el.get_text(" ", strip=True)
             address_el = row.select_one("div.col-lg-6")
             phone_el = row.select_one("div.col-lg-3.py-lg-2")
-            badge_el = row.select_one("span.bg-info")
+            badge_el = row.select_one("span.bg-secondary") or row.select_one("span.bg-info")
 
             address = address_el.get_text(" ", strip=True) if address_el else ""
             phone = phone_el.get_text(" ", strip=True) if phone_el else ""

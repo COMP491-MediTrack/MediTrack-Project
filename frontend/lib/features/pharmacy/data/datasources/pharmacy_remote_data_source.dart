@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../models/pharmacy_model.dart';
@@ -16,6 +18,11 @@ class PharmacyRemoteDataSourceImpl implements PharmacyRemoteDataSource {
   @override
   Future<List<PharmacyModel>> getOnDutyPharmacies(String city) async {
     try {
+      assert(() {
+        developer.log('Fetching on-duty pharmacies for city: $city');
+        return true;
+      }());
+
       final response = await dio.get(
         '/pharmacies/on-duty',
         queryParameters: {'city': city},
@@ -23,6 +30,10 @@ class PharmacyRemoteDataSourceImpl implements PharmacyRemoteDataSource {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
+        assert(() {
+          developer.log('On-duty pharmacies response count: ${data.length}');
+          return true;
+        }());
         return data.map((json) => PharmacyModel.fromJson(json)).toList();
       } else {
         throw ServerException('Status code: ${response.statusCode}');

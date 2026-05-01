@@ -12,7 +12,7 @@ async def get_on_duty_pharmacies(city: str = Query(..., description="İl adı, �
     try:
         pharmacies = await PharmacyService.get_on_duty_pharmacies(city)
         return pharmacies
-    except ValueError:
-        return []
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
