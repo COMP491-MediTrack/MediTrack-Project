@@ -54,6 +54,8 @@ class PatientDashboardPage extends StatelessWidget {
                       _buildDoctorCard(context),
                       SizedBox(height: 16.h),
                       _buildPharmacyActionCard(context),
+                      SizedBox(height: 16.h),
+                      _buildScheduleActionCard(context, user),
                       SizedBox(height: 12.h),
                       _buildLabResultsActionCard(context),
                       SizedBox(height: 12.h),
@@ -113,6 +115,10 @@ class PatientDashboardPage extends StatelessWidget {
     );
   }
 
+  Widget _buildScheduleActionCard(BuildContext context, UserEntity? user) {
+    if (user == null) return const SizedBox.shrink();
+    return GestureDetector(
+      onTap: () => context.push(RouteNames.medicineSchedule, extra: user.uid),
   Widget _buildReminderCard(BuildContext context) {
     return BlocBuilder<PrescriptionCubit, PrescriptionState>(
       builder: (context, state) {
@@ -207,6 +213,13 @@ class PatientDashboardPage extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColors.primary.withAlpha(51)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_month_outlined, color: AppColors.primary, size: 28.sp),
           color: Colors.teal[50],
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: Colors.teal[200]!),
@@ -220,6 +233,11 @@ class PatientDashboardPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
+                    'İlaç Takvimim ve Stoklar',
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     'Lab Sonuçları & İstekler',
                     style: TextStyle(
                       fontSize: 15.sp,
@@ -229,6 +247,13 @@ class PatientDashboardPage extends StatelessWidget {
                   ),
                   SizedBox(height: 2.h),
                   Text(
+                    'Haftalık programınızı ve ilaç stok durumunuzu görün.',
+                    style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: AppColors.primary, size: 16.sp),
                     'Doktorunuzun eklediği lab sonuçlarını ve tahlil isteklerini görüntüleyin.',
                     style: TextStyle(fontSize: 12.sp, color: Colors.teal[600]),
                   ),
