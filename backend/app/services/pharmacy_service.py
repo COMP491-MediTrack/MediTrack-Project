@@ -7,16 +7,34 @@ import unicodedata
 class PharmacyService:
     @staticmethod
     def slugify(text: str) -> str:
+        # Step 1: Clean common suffixes from mobile GPS data
         text = text.lower()
-        replacements = {'ı': 'i', 'ş': 's', 'ç': 'c', 'ğ': 'g', 'ü': 'u', 'ö': 'o'}
+        suffixes = [" ili", " province", " belediyesi", " valiliği"]
+        for suffix in suffixes:
+            text = text.replace(suffix, "")
+        
+        # Step 2: Normalize Turkish characters
+        text = text.strip()
+        replacements = {'ı': 'i', 'ş': 's', 'ç': 'c', 'ğ': 'g', 'ü': 'u', 'ö': 'o', 'İ': 'i'}
         for old, new in replacements.items():
             text = text.replace(old, new)
+        
+        # Step 3: Remove all non-alphanumeric except hyphens
         text = ''.join(c for c in text if c.isalnum() or c == '-')
         return text
 
     @classmethod
     async def get_on_duty_pharmacies(cls, city: str) -> List[Dict[str, Any]]:
+        # Map some common variations to the site's expected slugs
+        city_map = {
+            "afyon": "afyonkarahisar",
+            "icel": "mersin",
+            "k.maras": "kahramanmaras",
+        }
+        
         city_slug = cls.slugify(city)
+        city_slug = city_map.get(city_slug, city_slug)
+        
         url = f"https://www.eczaneler.gen.tr/nobetci-{city_slug}"
         
         headers = {

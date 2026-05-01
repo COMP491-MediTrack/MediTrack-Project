@@ -47,6 +47,9 @@ class GetNearbyPharmacies {
       }
       
       String city = placemarks.first.administrativeArea ?? 'Istanbul';
+      // Clean " İli", " Province" etc. in Flutter before sending to backend for safety
+      city = city.replaceAll(RegExp(r' (İli|Province|Belediyesi|Valiliği)', caseSensitive: false), '').trim();
+      
       // In Turkey, administrativeArea is usually the province name e.g. "İstanbul"
 
       // 4. Fetch Pharmacies for City
@@ -79,12 +82,15 @@ class GetNearbyPharmacies {
                     .replaceAll('ö', 'o').replaceAll('ş', 's').replaceAll('ü', 'u');
           }
 
-          if (rawDistrict.isNotEmpty && validPharmacies.length > 20) {
+          if (rawDistrict.isNotEmpty && validPharmacies.length > 10) {
             final testDistrict = normalize(rawDistrict);
             final inDistrict = validPharmacies.where((p) => 
                 normalize(p.address).contains(testDistrict) || 
                 normalize(p.district).contains(testDistrict)
             ).toList();
+            
+            // Eğer ilçe filtrelemesi sonucu hiç eczane kalmıyorsa, 
+            // filtrelemeyi iptal et ve tüm şehri göster (önemli fallback)
             if (inDistrict.isNotEmpty) {
                validPharmacies = inDistrict;
             }
