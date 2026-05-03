@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,9 +19,18 @@ abstract class FirebaseModule {
   FirebaseStorage get storage => FirebaseStorage.instance;
 
   @lazySingleton
-  Dio get dio => Dio(BaseOptions(
+  Dio get dio {
+    assert(() {
+      developer.log('MediTrack API_BASE_URL: ${AppConstants.apiBaseUrl}');
+      return true;
+    }());
+
+    return Dio(
+      BaseOptions(
         baseUrl: AppConstants.apiBaseUrl,
         connectTimeout: const Duration(seconds: 90),
         receiveTimeout: const Duration(seconds: 90),
-      ));
+      ),
+    );
+  }
 }

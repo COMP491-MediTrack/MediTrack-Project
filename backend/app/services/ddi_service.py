@@ -34,4 +34,6 @@ class DDIService:
         return results
 
 
+
+
 ddi_service = DDIService()

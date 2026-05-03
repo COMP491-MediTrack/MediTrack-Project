@@ -16,6 +16,7 @@ import 'package:meditrack/features/prescription/presentation/pages/prescription_
 import 'package:meditrack/features/lab_results/presentation/pages/lab_results_page.dart';
 import 'package:meditrack/features/lab_results/presentation/pages/create_test_request_page.dart';
 import 'package:meditrack/features/pharmacy/presentation/pages/pharmacy_map_page.dart';
+import 'package:meditrack/features/dashboard/presentation/pages/medicine_schedule_page.dart';
 
 class _AuthStreamNotifier extends ChangeNotifier {
   late final StreamSubscription<User?> _subscription;
@@ -99,6 +100,13 @@ class AppRouter {
       GoRoute(
         path: RouteNames.pharmacy,
         builder: (context, state) => const PharmacyMapPage(),
+      ),
+      GoRoute(
+        path: RouteNames.medicineSchedule,
+        builder: (context, state) {
+          final patientId = state.extra as String;
+          return MedicineSchedulePage(patientId: patientId);
+        },
       ),
       GoRoute(
         path: RouteNames.labResults,

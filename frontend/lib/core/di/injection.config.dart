@@ -128,7 +128,7 @@ extension GetItInjectableX on _i174.GetIt {
               gh<_i59.FirebaseAuth>(),
             ));
     gh.lazySingleton<_i104.PharmacyRemoteDataSource>(
-        () => _i104.PharmacyRemoteDataSourceImpl(dio: gh<_i361.Dio>()));
+        () => _i104.PharmacyRemoteDataSourceImpl());
     gh.lazySingleton<_i1061.PharmacyRepository>(() =>
         _i83.PharmacyRepositoryImpl(
             remoteDataSource: gh<_i104.PharmacyRemoteDataSource>()));

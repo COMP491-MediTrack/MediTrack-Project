@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -137,7 +138,10 @@ class _PharmacyMapPageState extends State<PharmacyMapPage> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        final uri = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}');
+                        final destination = '${p.latitude},${p.longitude}';
+                        final uri = Platform.isIOS
+                            ? Uri.parse('maps://?q=$destination')
+                            : Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$destination');
                         try {
                           await launchUrl(uri, mode: LaunchMode.externalApplication);
                         } catch (_) {}
