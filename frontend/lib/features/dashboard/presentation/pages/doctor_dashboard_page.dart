@@ -10,6 +10,10 @@ import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_state.dart';
+import 'package:meditrack/features/dashboard/presentation/cubit/weather_cubit.dart';
+import 'package:meditrack/features/dashboard/presentation/cubit/weather_state.dart';
+import 'package:meditrack/features/dashboard/data/datasources/weather_remote_datasource.dart';
+import 'package:dio/dio.dart';
 
 class DoctorDashboardPage extends StatelessWidget {
   const DoctorDashboardPage({super.key});
@@ -20,6 +24,7 @@ class DoctorDashboardPage extends StatelessWidget {
       providers: [
         BlocProvider(create: (_) => getIt<AuthCubit>()..checkAuthStatus()),
         BlocProvider(create: (_) => getIt<DashboardCubit>()),
+        BlocProvider(create: (_) => WeatherCubit(WeatherRemoteDataSourceImpl(getIt<Dio>()))..fetchWeather()),
       ],
       child: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
@@ -70,51 +75,117 @@ class DoctorDashboardPage extends StatelessWidget {
     );
   }
 
+  ({IconData icon, Color color}) _getWeatherInfo(String? description) {
+    final desc = description?.toLowerCase() ?? '';
+    if (desc.contains('açık') || desc.contains('güneş')) {
+      return (icon: Icons.wb_sunny_rounded, color: AppColors.warning);
+    } else if (desc.contains('bulut') || desc.contains('kapalı')) {
+      return (icon: Icons.cloud_rounded, color: Colors.blueGrey[300]!);
+    } else if (desc.contains('yağmur') || desc.contains('çisenti')) {
+      return (icon: Icons.umbrella_rounded, color: Colors.indigo[300]!);
+    } else if (desc.contains('kar')) {
+      return (icon: Icons.ac_unit_rounded, color: Colors.lightBlue[100]!);
+    }
+    return (icon: Icons.wb_cloudy_rounded, color: AppColors.primaryDark);
+  }
+
   Widget _buildWelcomeCard(BuildContext context, UserEntity? user) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.primaryDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Merhaba,',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.white70,
+    return BlocBuilder<WeatherCubit, WeatherState>(
+      builder: (context, weatherState) {
+        final weather =
+            weatherState is WeatherLoaded ? weatherState.weather : null;
+        final weatherInfo = _getWeatherInfo(weather?.description);
+
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(20.w),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primary,
+                weatherInfo.color.withAlpha(204),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            'Dr. ${user?.name ?? ''}',
-            style: TextStyle(
-              fontSize: 22.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          Row(
-            children: [
-              const Icon(Icons.calendar_today_outlined,
-                  color: Colors.white70, size: 14),
-              SizedBox(width: 6.w),
-              Text(
-                _todayFormatted(),
-                style: TextStyle(fontSize: 13.sp, color: Colors.white70),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: weatherInfo.color.withAlpha(76),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-        ],
-      ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Merhaba,',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      'Dr. ${user?.name ?? ''}',
+                      style: TextStyle(
+                        fontSize: 22.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined,
+                            color: Colors.white70, size: 14),
+                        SizedBox(width: 6.w),
+                        Text(
+                          _todayFormatted(),
+                          style:
+                              TextStyle(fontSize: 13.sp, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (weather != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Icon(
+                      weatherInfo.icon,
+                      color: Colors.white,
+                      size: 32.sp,
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      '${weather.temperature.round()}°C',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      weather.description,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.white.withAlpha(204),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
