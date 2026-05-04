@@ -7,6 +7,7 @@ import 'package:meditrack/core/router/route_names.dart';
 import 'package:meditrack/features/auth/domain/entities/user_entity.dart';
 import 'package:meditrack/features/auth/presentation/pages/login_page.dart';
 import 'package:meditrack/features/auth/presentation/pages/register_page.dart';
+import 'package:meditrack/features/auth/presentation/pages/profile_page.dart';
 import 'package:meditrack/features/dashboard/presentation/pages/doctor_dashboard_page.dart';
 import 'package:meditrack/features/dashboard/presentation/pages/patient_dashboard_page.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
@@ -129,6 +130,10 @@ class AppRouter {
             doctorName: extra['doctorName'] as String,
           );
         },
+      ),
+      GoRoute(
+        path: RouteNames.profile,
+        builder: (context, state) => const ProfilePage(),
       ),
     ],
   );

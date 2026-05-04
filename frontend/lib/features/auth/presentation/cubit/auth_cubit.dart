@@ -7,7 +7,7 @@ import 'package:meditrack/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:meditrack/features/auth/domain/usecases/register_usecase.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
 
-@injectable
+@lazySingleton
 class AuthCubit extends Cubit<AuthState> {
   final LoginUseCase _loginUseCase;
   final RegisterUseCase _registerUseCase;
@@ -87,5 +87,23 @@ class AuthCubit extends Cubit<AuthState> {
       (failure) => emit(AuthError(failure.message)),
       (_) => emit(AuthUnauthenticated()),
     );
+  }
+
+  Future<void> updateName(String newName) async {
+    final currentState = state;
+    if (currentState is AuthAuthenticated) {
+      emit(AuthLoading());
+      final result = await _authRepository.updateName(
+        currentState.user.uid,
+        newName,
+      );
+      result.fold(
+        (failure) => emit(AuthError(failure.message)),
+        (_) {
+          final updatedUser = currentState.user.copyWith(name: newName);
+          emit(AuthAuthenticated(updatedUser));
+        },
+      );
+    }
   }
 }
