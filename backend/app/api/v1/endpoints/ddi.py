@@ -29,13 +29,21 @@ def explain_ddi(request: DDIExplainRequest):
     Kısa etkileşim açıklamasını alıp Gemini üzerinden doktor için detaylı açıklama metni döner.
     """
     prompt = (
-        f"You are an expert pharmacologist.\n"
-        f"Please explain the interaction between the following two active ingredients to a doctor in a clinical and professional tone.\n\n"
+        "TASK: Provide a technical clinical explanation of the drug interaction below for a medical database. "
+        "The output must be a direct, raw paragraph of information.\n\n"
+        "CRITICAL - FORBIDDEN CONTENT:\n"
+        "- DO NOT include ANY greetings (e.g., NEVER start with 'Dear Doctor', 'Hello', or 'Hi').\n"
+        "- DO NOT include introductions or meta-talk (e.g., 'As an expert...', 'This interaction involves...').\n"
+        "- DO NOT include closing remarks or signatures.\n\n"
+        "REQUIREMENTS:\n"
+        "- Format: Single concise paragraph.\n"
+        "- Length: 4-6 sentences.\n"
+        "- Content: Clinical mechanism, risks, and monitoring/dosage advice.\n"
+        "- Tone: Professional and clinical.\n\n"
         f"Active Ingredient 1: {request.active_ingredient_1}\n"
         f"Active Ingredient 2: {request.active_ingredient_2}\n"
-        f"Short Interaction Description: {request.description}\n\n"
-        f"In your explanation, briefly include the potential mechanism, what the doctor should watch out for, "
-        f"and any actionable dosage or clinical monitoring recommendations. Write the entire response in English."
+        f"Interaction Context: {request.description}\n\n"
+        "OUTPUT THE CLINICAL TEXT IMMEDIATELY (NO GREETINGS):"
     )
     
     explanation = gemini_service.generate_text(prompt)
