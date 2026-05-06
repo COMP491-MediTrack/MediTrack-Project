@@ -131,9 +131,9 @@ class PatientDashboardPage extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: AppColors.primaryLight,
+          color: AppColors.primaryContainer,
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.primary.withAlpha(51)),
+          border: Border.all(color: AppColors.primary.withAlpha(77)),
         ),
         child: Row(
           children: [
@@ -152,7 +152,7 @@ class PatientDashboardPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: AppColors.primaryDark,
                     ),
                   ),
                   SizedBox(height: 2.h),
@@ -160,7 +160,7 @@ class PatientDashboardPage extends StatelessWidget {
                     'Haftalık programınızı ve ilaç stok durumunuzu görün.',
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: AppColors.textSecondary,
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
