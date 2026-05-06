@@ -23,6 +23,7 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
   bool _isSavingTaken = false;
   bool _isLoadingAdherence = true;
   Map<String, int> _takenDoseCountsByDrug = {};
+  Map<String, int> _todayTakenDoseCountsByDrug = {};
 
   @override
   void initState() {
@@ -38,16 +39,33 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
           .get();
 
       final counts = <String, int>{};
+      final todayCounts = <String, int>{};
+      final now = DateTime.now();
       for (final doc in snapshot.docs) {
         final data = doc.data();
         final drugKey = data['drug_key'] as String?;
         final doseCount = (data['dose_count'] as num?)?.toInt() ?? 1;
         if (drugKey == null || drugKey.isEmpty) continue;
         counts[drugKey] = (counts[drugKey] ?? 0) + doseCount;
+
+        final takenAt = data['taken_at'];
+        DateTime? takenAtDate;
+        if (takenAt is Timestamp) {
+          takenAtDate = takenAt.toDate();
+        }
+        if (takenAtDate != null &&
+            takenAtDate.year == now.year &&
+            takenAtDate.month == now.month &&
+            takenAtDate.day == now.day) {
+          todayCounts[drugKey] = (todayCounts[drugKey] ?? 0) + doseCount;
+        }
       }
 
       if (!mounted) return;
-      setState(() => _takenDoseCountsByDrug = counts);
+      setState(() {
+        _takenDoseCountsByDrug = counts;
+        _todayTakenDoseCountsByDrug = todayCounts;
+      });
     } finally {
       if (mounted) {
         setState(() => _isLoadingAdherence = false);
@@ -67,6 +85,22 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
     setState(() => _isSavingTaken = true);
     try {
       final drugKey = _drugKey(drug);
+      final dailyLimit = _calculateDosesPerDay(drug.frequency);
+      final todayTaken = _todayTakenDoseCountsByDrug[drugKey] ?? 0;
+
+      if (todayTaken >= dailyLimit) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${drug.brandName} için günlük doz limiti doldu ($dailyLimit/$dailyLimit)',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
       await _firestore.collection(AppConstants.adherenceCollection).add({
         'patient_id': widget.patientId,
         'drug_key': drugKey,
@@ -79,6 +113,8 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
       setState(() {
         _takenDoseCountsByDrug[drugKey] =
             (_takenDoseCountsByDrug[drugKey] ?? 0) + 1;
+        _todayTakenDoseCountsByDrug[drugKey] =
+            (_todayTakenDoseCountsByDrug[drugKey] ?? 0) + 1;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -111,16 +147,27 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
   }
 
   int _calculateDosesPerDay(String frequency) {
-    int dosesPerDay = 1;
-    if (frequency.contains('x')) {
-      final parts = frequency.toLowerCase().split('x');
+    final normalized = frequency.toLowerCase();
+
+    final turkishDailyMatch = RegExp(r'günde\s*(\d+)').firstMatch(normalized);
+    if (turkishDailyMatch != null) {
+      return int.tryParse(turkishDailyMatch.group(1) ?? '') ?? 1;
+    }
+
+    if (normalized.contains('x')) {
+      final parts = normalized.split('x');
       if (parts.length == 2) {
         final times = int.tryParse(parts[0].trim()) ?? 1;
         final dose = int.tryParse(parts[1].trim()) ?? 1;
-        dosesPerDay = times * dose;
+        return times * dose;
       }
     }
-    return dosesPerDay;
+
+    if (normalized.contains('haftada')) {
+      return 1;
+    }
+
+    return 1;
   }
 
   ({IconData icon, IconData? detailIcon, Color color}) _medicineVisual(
@@ -266,6 +313,10 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
               final totalStock =
                   _calculateDosesPerDay(drug.frequency) * drug.durationDays;
               final takenCount = _takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
+              final todayTaken =
+                  _todayTakenDoseCountsByDrug[_drugKey(drug)] ?? 0;
+              final dailyLimit = _calculateDosesPerDay(drug.frequency);
+              final dailyLimitReached = todayTaken >= dailyLimit;
               final remaining = (totalStock - takenCount).clamp(0, totalStock);
               return ListTile(
                 leading: SizedBox(
@@ -309,10 +360,12 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
                   drug.brandName,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text('Kullanım: ${drug.frequency} • Kalan: $remaining'),
+                subtitle: Text(
+                  'Kullanım: ${drug.frequency} • Bugün: $todayTaken/$dailyLimit • Kalan: $remaining',
+                ),
                 trailing: isToday
                     ? ElevatedButton(
-                        onPressed: _isSavingTaken
+                        onPressed: _isSavingTaken || dailyLimitReached
                             ? null
                             : () => _markDrugAsTaken(drug),
                         style: ElevatedButton.styleFrom(
@@ -321,7 +374,7 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
                           elevation: 0,
                         ),
                         child: Text(
-                          'Aldım',
+                          dailyLimitReached ? 'Limit' : 'Aldım',
                           style: TextStyle(
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w600,
