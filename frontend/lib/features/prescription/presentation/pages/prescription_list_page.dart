@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
+import 'package:meditrack/core/constants/app_constants.dart';
 import 'package:meditrack/core/di/injection.dart';
 import 'package:meditrack/core/router/route_names.dart';
 import 'package:meditrack/core/theme/app_colors.dart';
+import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
@@ -70,14 +73,40 @@ class PrescriptionListPage extends StatelessWidget {
               if (state.prescriptions.isEmpty) {
                 return _buildEmptyState();
               }
-              return ListView.separated(
-                padding: EdgeInsets.all(16.w),
-                itemCount: state.prescriptions.length,
-                separatorBuilder: (_, __) => SizedBox(height: 12.h),
-                itemBuilder: (_, index) => _buildPrescriptionCard(
-                  context,
-                  state.prescriptions[index],
-                ),
+              return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: getIt<FirebaseFirestore>()
+                    .collection(AppConstants.adherenceCollection)
+                    .where('patient_id', isEqualTo: patientId)
+                    .snapshots(),
+                builder: (context, adherenceSnapshot) {
+                  final takenDoseCountsByDrug = <String, int>{};
+                  for (final doc in adherenceSnapshot.data?.docs ?? []) {
+                    final data = doc.data();
+                    final drugKey = data['drug_key'] as String?;
+                    final doseCount = (data['dose_count'] as num?)?.toInt() ?? 1;
+                    if (drugKey == null || drugKey.isEmpty) continue;
+                    takenDoseCountsByDrug[drugKey] =
+                        (takenDoseCountsByDrug[drugKey] ?? 0) + doseCount;
+                  }
+
+                  return ListView.separated(
+                    padding: EdgeInsets.all(16.w),
+                    itemCount: state.prescriptions.length,
+                    separatorBuilder: (_, __) => SizedBox(height: 12.h),
+                    itemBuilder: (_, index) {
+                      final prescription = state.prescriptions[index];
+                      final isCurrentlyActive = _isPrescriptionCurrentlyActive(
+                        prescription,
+                        takenDoseCountsByDrug,
+                      );
+                      return _buildPrescriptionCard(
+                        context,
+                        prescription,
+                        isCurrentlyActive: isCurrentlyActive,
+                      );
+                    },
+                  );
+                },
               );
             }
             return const SizedBox();
@@ -103,7 +132,11 @@ class PrescriptionListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPrescriptionCard(BuildContext context, PrescriptionEntity prescription) {
+  Widget _buildPrescriptionCard(
+    BuildContext context,
+    PrescriptionEntity prescription, {
+    required bool isCurrentlyActive,
+  }) {
     return InkWell(
       onTap: () => context.push(RouteNames.prescriptionDetail, extra: prescription),
       borderRadius: BorderRadius.circular(12.r),
@@ -124,7 +157,7 @@ class PrescriptionListPage extends StatelessWidget {
                   'Dr. ${prescription.doctorName}',
                   style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
                 ),
-                _buildStatusChip(prescription.status),
+                _buildStatusChip(isCurrentlyActive),
               ],
             ),
             SizedBox(height: 8.h),
@@ -143,19 +176,23 @@ class PrescriptionListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusChip(String status) {
-    final isActive = status == 'active';
+  Widget _buildStatusChip(bool isActive) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: isActive ? AppColors.success.withValues(alpha: 0.1) : AppColors.divider,
+        color: isActive ? AppColors.primaryContainer : AppColors.errorContainer,
         borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: isActive
+              ? AppColors.primary.withAlpha(77)
+              : AppColors.error.withAlpha(77),
+        ),
       ),
       child: Text(
-        isActive ? 'Aktif' : 'Tamamlandı',
+        isActive ? 'Aktif' : 'İnaktif',
         style: TextStyle(
           fontSize: 12.sp,
-          color: isActive ? AppColors.success : AppColors.textSecondary,
+          color: isActive ? AppColors.primaryDark : AppColors.error,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -164,5 +201,53 @@ class PrescriptionListPage extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year}';
+  }
+
+  bool _isPrescriptionCurrentlyActive(
+    PrescriptionEntity prescription,
+    Map<String, int> takenDoseCountsByDrug,
+  ) {
+    if (!prescription.isActive || prescription.drugs.isEmpty) return false;
+
+    for (final drug in prescription.drugs) {
+      final totalStock = _calculateDosesPerDay(drug.frequency) * drug.durationDays;
+      if (totalStock <= 0) continue;
+      final takenCount = takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
+      final remaining = (totalStock - takenCount).clamp(0, totalStock);
+      if (remaining > 0) return true;
+    }
+    return false;
+  }
+
+  String _drugKey(DrugItemEntity drug) {
+    if (drug.barcode.isNotEmpty) {
+      return drug.barcode;
+    }
+    return '${drug.brandName}_${drug.frequency}_${drug.durationDays}'
+        .toLowerCase();
+  }
+
+  int _calculateDosesPerDay(String frequency) {
+    final normalized = frequency.toLowerCase();
+
+    final turkishDailyMatch = RegExp(r'günde\s*(\d+)').firstMatch(normalized);
+    if (turkishDailyMatch != null) {
+      return int.tryParse(turkishDailyMatch.group(1) ?? '') ?? 1;
+    }
+
+    if (normalized.contains('x')) {
+      final parts = normalized.split('x');
+      if (parts.length == 2) {
+        final times = int.tryParse(parts[0].trim()) ?? 1;
+        final dose = int.tryParse(parts[1].trim()) ?? 1;
+        return times * dose;
+      }
+    }
+
+    if (normalized.contains('haftada')) {
+      return 1;
+    }
+
+    return 1;
   }
 }
