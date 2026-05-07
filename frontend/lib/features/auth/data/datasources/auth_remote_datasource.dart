@@ -16,6 +16,7 @@ abstract class AuthRemoteDataSource {
   Future<List<UserModel>> getDoctors();
   Future<UserModel?> getCurrentUser();
   Future<void> logout();
+  Future<void> updateName(String uid, String newName);
 }
 
 @LazySingleton(as: AuthRemoteDataSource)
@@ -95,5 +96,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> logout() async {
     await _firebaseAuth.signOut();
+  }
+
+  @override
+  Future<void> updateName(String uid, String newName) async {
+    await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .update({'name': newName});
   }
 }
