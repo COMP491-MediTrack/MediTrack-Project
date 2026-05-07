@@ -12,6 +12,7 @@ import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_state.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
+import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/weather_cubit.dart';
@@ -19,6 +20,8 @@ import 'package:meditrack/features/dashboard/presentation/cubit/weather_state.da
 import 'package:meditrack/features/dashboard/data/models/weather_model.dart';
 import 'package:meditrack/features/dashboard/data/datasources/weather_remote_datasource.dart';
 import 'package:dio/dio.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:meditrack/core/constants/app_constants.dart';
 
 class PatientDashboardPage extends StatelessWidget {
   const PatientDashboardPage({super.key});
@@ -149,9 +152,9 @@ class PatientDashboardPage extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: AppColors.primaryLight,
+          color: AppColors.primaryContainer,
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.primary.withAlpha(51)),
+          border: Border.all(color: AppColors.primary.withAlpha(77)),
         ),
         child: Row(
           children: [
@@ -170,7 +173,7 @@ class PatientDashboardPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: AppColors.primaryDark,
                     ),
                   ),
                   SizedBox(height: 2.h),
@@ -178,7 +181,7 @@ class PatientDashboardPage extends StatelessWidget {
                     'Haftalık programınızı ve ilaç stok durumunuzu görün.',
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: AppColors.textSecondary,
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -596,17 +599,43 @@ class PatientDashboardPage extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (state is PrescriptionListLoaded) {
-                  final active = state.prescriptions
-                      .where((p) => p.isActive)
-                      .toList();
-                  if (active.isEmpty) {
+                  final active = state.prescriptions.where((p) => p.isActive).toList();
+                  if (active.isEmpty || user == null) {
                     return _emptyPrescriptions();
                   }
-                  return Column(
-                    children: active
-                        .take(2)
-                        .map((p) => _buildPrescriptionCard(context, p))
-                        .toList(),
+
+                  return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                    stream: getIt<FirebaseFirestore>()
+                        .collection(AppConstants.adherenceCollection)
+                        .where('patient_id', isEqualTo: user.uid)
+                        .snapshots(),
+                    builder: (context, adherenceSnapshot) {
+                      final takenDoseCountsByDrug = <String, int>{};
+                      for (final doc in adherenceSnapshot.data?.docs ?? []) {
+                        final data = doc.data();
+                        final drugKey = data['drug_key'] as String?;
+                        final doseCount = (data['dose_count'] as num?)?.toInt() ?? 1;
+                        if (drugKey == null || drugKey.isEmpty) continue;
+                        takenDoseCountsByDrug[drugKey] =
+                            (takenDoseCountsByDrug[drugKey] ?? 0) + doseCount;
+                      }
+
+                      return Column(
+                        children: active
+                            .take(2)
+                            .map(
+                              (p) => _buildPrescriptionCard(
+                                context,
+                                p,
+                                isCurrentlyActive: _isPrescriptionCurrentlyActive(
+                                  p,
+                                  takenDoseCountsByDrug,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      );
+                    },
                   );
                 }
                 return _emptyPrescriptions();
@@ -644,7 +673,19 @@ class PatientDashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPrescriptionCard(BuildContext context, PrescriptionEntity p) {
+  Widget _buildPrescriptionCard(
+    BuildContext context,
+    PrescriptionEntity p, {
+    required bool isCurrentlyActive,
+  }) {
+    final statusLabel = isCurrentlyActive ? 'Aktif' : 'İnaktif';
+    final chipBackgroundColor = isCurrentlyActive
+        ? AppColors.primaryContainer
+        : AppColors.errorContainer;
+    final chipTextColor = isCurrentlyActive
+        ? AppColors.primaryDark
+        : AppColors.error;
+
     return GestureDetector(
       onTap: () => context.push(RouteNames.prescriptionDetail, extra: p),
       child: Container(
@@ -672,14 +713,19 @@ class PatientDashboardPage extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
+                    color: chipBackgroundColor,
                     borderRadius: BorderRadius.circular(6.r),
+                    border: Border.all(
+                      color: isCurrentlyActive
+                          ? AppColors.primary.withAlpha(77)
+                          : AppColors.error.withAlpha(77),
+                    ),
                   ),
                   child: Text(
-                    'Aktif',
+                    statusLabel,
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: AppColors.primary,
+                      color: chipTextColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -719,5 +765,56 @@ class PatientDashboardPage extends StatelessWidget {
       'Aralık',
     ];
     return '${now.day} ${months[now.month - 1]} ${now.year}';
+  }
+
+  bool _isPrescriptionCurrentlyActive(
+    PrescriptionEntity prescription,
+    Map<String, int> takenDoseCountsByDrug,
+  ) {
+    if (!prescription.isActive) return false;
+    if (prescription.drugs.isEmpty) return false;
+
+    for (final drug in prescription.drugs) {
+      final totalStock = _calculateDosesPerDay(drug.frequency) * drug.durationDays;
+      if (totalStock <= 0) continue;
+      final takenCount = takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
+      final remaining = (totalStock - takenCount).clamp(0, totalStock);
+      if (remaining > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  String _drugKey(DrugItemEntity drug) {
+    if (drug.barcode.isNotEmpty) {
+      return drug.barcode;
+    }
+    return '${drug.brandName}_${drug.frequency}_${drug.durationDays}'.toLowerCase();
+  }
+
+  int _calculateDosesPerDay(String frequency) {
+    final normalized = frequency.toLowerCase();
+
+    final turkishDailyMatch = RegExp(r'günde\s*(\d+)').firstMatch(normalized);
+    if (turkishDailyMatch != null) {
+      return int.tryParse(turkishDailyMatch.group(1) ?? '') ?? 1;
+    }
+
+    if (normalized.contains('x')) {
+      final parts = normalized.split('x');
+      if (parts.length == 2) {
+        final times = int.tryParse(parts[0].trim()) ?? 1;
+        final dose = int.tryParse(parts[1].trim()) ?? 1;
+        return times * dose;
+      }
+    }
+
+    if (normalized.contains('haftada')) {
+      return 1;
+    }
+
+    return 1;
   }
 }
