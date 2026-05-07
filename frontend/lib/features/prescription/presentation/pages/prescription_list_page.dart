@@ -12,7 +12,7 @@ import 'package:meditrack/features/prescription/domain/entities/prescription_ent
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
 
-class PrescriptionListPage extends StatelessWidget {
+class PrescriptionListPage extends StatefulWidget {
   final String patientId;
   final String? patientName;
   final Map<String, dynamic>? doctorExtra;
@@ -25,13 +25,24 @@ class PrescriptionListPage extends StatelessWidget {
   });
 
   @override
+  State<PrescriptionListPage> createState() => _PrescriptionListPageState();
+}
+
+class _PrescriptionListPageState extends State<PrescriptionListPage> {
+  Map<String, int> _lastKnownTakenDoseCountsByDrug = {};
+
+  @override
   Widget build(BuildContext context) {
-    final isDoctor = doctorExtra != null;
+    final isDoctor = widget.doctorExtra != null;
     return BlocProvider(
-      create: (_) => getIt<PrescriptionCubit>()..loadPatientPrescriptions(patientId),
+      create: (_) => getIt<PrescriptionCubit>()..loadPatientPrescriptions(widget.patientId),
       child: Scaffold(
         appBar: AppBar(
-          title: Text(isDoctor && patientName != null ? patientName! : 'Reçetelerim'),
+          title: Text(
+            isDoctor && widget.patientName != null
+                ? widget.patientName!
+                : 'Reçetelerim',
+          ),
           centerTitle: true,
           actions: isDoctor
               ? [
@@ -41,8 +52,8 @@ class PrescriptionListPage extends StatelessWidget {
                     onPressed: () => context.push(
                       RouteNames.labResults,
                       extra: {
-                        'patientId': patientId,
-                        'patientName': patientName,
+                        'patientId': widget.patientId,
+                        'patientName': widget.patientName,
                         'isDoctor': true,
                       },
                     ),
@@ -55,7 +66,7 @@ class PrescriptionListPage extends StatelessWidget {
             ? FloatingActionButton.extended(
                 onPressed: () => context.push(
                   RouteNames.createPrescription,
-                  extra: doctorExtra,
+                  extra: widget.doctorExtra,
                 ),
                 icon: const Icon(Icons.add),
                 label: const Text('Yeni Reçete'),
@@ -76,18 +87,21 @@ class PrescriptionListPage extends StatelessWidget {
               return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                 stream: getIt<FirebaseFirestore>()
                     .collection(AppConstants.adherenceCollection)
-                    .where('patient_id', isEqualTo: patientId)
+                    .where('patient_id', isEqualTo: widget.patientId)
                     .snapshots(),
                 builder: (context, adherenceSnapshot) {
-                  final takenDoseCountsByDrug = <String, int>{};
-                  for (final doc in adherenceSnapshot.data?.docs ?? []) {
-                    final data = doc.data();
-                    final drugKey = data['drug_key'] as String?;
-                    final doseCount = (data['dose_count'] as num?)?.toInt() ?? 1;
-                    if (drugKey == null || drugKey.isEmpty) continue;
-                    takenDoseCountsByDrug[drugKey] =
-                        (takenDoseCountsByDrug[drugKey] ?? 0) + doseCount;
+                  if (adherenceSnapshot.hasData) {
+                    final freshCounts = <String, int>{};
+                    for (final doc in adherenceSnapshot.data!.docs) {
+                      final data = doc.data();
+                      final drugKey = data['drug_key'] as String?;
+                      final doseCount = (data['dose_count'] as num?)?.toInt() ?? 1;
+                      if (drugKey == null || drugKey.isEmpty) continue;
+                      freshCounts[drugKey] = (freshCounts[drugKey] ?? 0) + doseCount;
+                    }
+                    _lastKnownTakenDoseCountsByDrug = freshCounts;
                   }
+                  final takenDoseCountsByDrug = _lastKnownTakenDoseCountsByDrug;
 
                   return ListView.separated(
                     padding: EdgeInsets.all(16.w),
