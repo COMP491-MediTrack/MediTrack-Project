@@ -28,4 +28,9 @@ class TestRequestRepositoryImpl implements TestRequestRepository {
   Future<List<TestRequestEntity>> getPatientTestRequests(String patientId) async {
     return await _remoteDatasource.getPatientTestRequests(patientId);
   }
+
+  @override
+  Future<List<TestRequestEntity>> getAllTestRequests() async {
+    return await _remoteDatasource.getAllTestRequests();
+  }
 }

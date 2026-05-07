@@ -107,6 +107,7 @@ class _CreateTestRequestPageState extends State<CreateTestRequestPage> {
                                       context.read<TestRequestCubit>().createTestRequest(
                                             testRequestId: id,
                                             patientId: widget.patient.uid,
+                                            patientName: widget.patient.name,
                                             doctorId: widget.doctorId,
                                             doctorName: widget.doctorName,
                                             requestedTests: _selectedTests.toList(),

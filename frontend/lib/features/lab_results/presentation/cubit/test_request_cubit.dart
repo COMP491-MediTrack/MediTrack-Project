@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 import 'package:meditrack/features/lab_results/domain/entities/test_request_entity.dart';
 import 'package:meditrack/features/lab_results/domain/usecases/create_test_request.dart';
+import 'package:meditrack/features/lab_results/domain/usecases/get_all_test_requests_usecase.dart';
 import 'package:meditrack/features/lab_results/domain/usecases/get_patient_test_requests.dart';
 import 'package:meditrack/features/lab_results/presentation/cubit/test_request_state.dart';
 
@@ -9,9 +10,13 @@ import 'package:meditrack/features/lab_results/presentation/cubit/test_request_s
 class TestRequestCubit extends Cubit<TestRequestState> {
   final CreateTestRequest _createTestRequest;
   final GetPatientTestRequests _getPatientTestRequests;
+  final GetAllTestRequestsUseCase _getAllTestRequests;
 
-  TestRequestCubit(this._createTestRequest, this._getPatientTestRequests)
-      : super(TestRequestInitial());
+  TestRequestCubit(
+    this._createTestRequest,
+    this._getPatientTestRequests,
+    this._getAllTestRequests,
+  ) : super(TestRequestInitial());
 
   Future<void> loadTestRequests(String patientId) async {
     try {
@@ -23,9 +28,20 @@ class TestRequestCubit extends Cubit<TestRequestState> {
     }
   }
 
+  Future<void> loadAllTestRequests() async {
+    try {
+      emit(TestRequestLoading());
+      final requests = await _getAllTestRequests();
+      emit(TestRequestsLoaded(requests));
+    } catch (e) {
+      emit(TestRequestError('Tahlil istekleri yüklenirken hata oluştu: $e'));
+    }
+  }
+
   Future<void> createTestRequest({
     required String testRequestId,
     required String patientId,
+    String? patientName,
     required String doctorId,
     required String doctorName,
     required List<String> requestedTests,
@@ -35,6 +51,7 @@ class TestRequestCubit extends Cubit<TestRequestState> {
       final request = TestRequestEntity(
         id: testRequestId,
         patientId: patientId,
+        patientName: patientName,
         doctorId: doctorId,
         doctorName: doctorName,
         requestedTests: requestedTests,

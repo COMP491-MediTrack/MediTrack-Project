@@ -49,6 +49,8 @@ import 'package:meditrack/features/lab_results/domain/usecases/create_test_reque
     as _i851;
 import 'package:meditrack/features/lab_results/domain/usecases/delete_lab_result_usecase.dart'
     as _i592;
+import 'package:meditrack/features/lab_results/domain/usecases/get_all_test_requests_usecase.dart'
+    as _i777;
 import 'package:meditrack/features/lab_results/domain/usecases/get_lab_results_usecase.dart'
     as _i179;
 import 'package:meditrack/features/lab_results/domain/usecases/get_patient_test_requests.dart'
@@ -162,6 +164,8 @@ extension GetItInjectableX on _i174.GetIt {
             gh<_i202.PrescriptionRepository>()));
     gh.lazySingleton<_i119.GetPatientTestRequests>(
         () => _i119.GetPatientTestRequests(gh<_i1059.TestRequestRepository>()));
+    gh.lazySingleton<_i777.GetAllTestRequestsUseCase>(
+        () => _i777.GetAllTestRequestsUseCase(gh<_i1059.TestRequestRepository>()));
     gh.lazySingleton<_i851.CreateTestRequest>(
         () => _i851.CreateTestRequest(gh<_i1059.TestRequestRepository>()));
     gh.lazySingleton<_i179.GetLabResultsUseCase>(
@@ -188,6 +192,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i139.TestRequestCubit>(() => _i139.TestRequestCubit(
           gh<_i851.CreateTestRequest>(),
           gh<_i119.GetPatientTestRequests>(),
+          gh<_i777.GetAllTestRequestsUseCase>(),
         ));
     gh.factory<_i834.LabResultCubit>(() => _i834.LabResultCubit(
           gh<_i179.GetLabResultsUseCase>(),

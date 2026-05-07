@@ -1,7 +1,7 @@
 # MediTrack
 
 Koç Üniversitesi COMP491 bitirme projesi.
-Reçete ve ilaç takip uygulaması — doktor ve hasta rollerine sahip dijital sağlık yönetim sistemi.
+Reçete ve ilaç takip uygulaması — doktor, hasta ve laboratuvar rollerine sahip dijital sağlık yönetim sistemi.
 
 ---
 

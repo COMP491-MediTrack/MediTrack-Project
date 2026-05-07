@@ -56,8 +56,9 @@ lib/
 │   └── theme/         # AppTheme, AppColors, AppTypography, AppSpacing
 └── features/
     ├── auth/          # Firebase Auth, login/register, rol yönetimi ✅
-    ├── dashboard/     # Doctor & Patient dashboard ✅
+    ├── dashboard/     # Doctor, Patient ve Lab dashboard ✅
     ├── prescription/  # Reçete oluşturma, listeleme, DDI kontrolü ✅
+    ├── lab_results/   # Tahlil istekleri, lab sonuçları PDF ✅
     └── ai/            # Semptom analizi, reçete özeti (yapılacak)
 ```
 
@@ -96,6 +97,7 @@ feature/
 |-----|----------|
 | `doctor` | Reçete yazar, hasta listesini görür, DDI kontrolü yapar |
 | `patient` | Kayıt olurken doktor seçer, reçetelerini görür, semptom girer |
+| `lab` | Tüm tahlil isteklerini görür, bekleyenler için PDF sonucu yükler |
 
 ---
 

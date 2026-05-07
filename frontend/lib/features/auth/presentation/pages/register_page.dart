@@ -48,7 +48,9 @@ class _RegisterPageState extends State<RegisterPage> {
             password: _passwordController.text,
             name: _nameController.text.trim(),
             role: _selectedRole,
-            doctorId: _selectedRole == AppConstants.rolePatient ? _selectedDoctorId : null,
+            doctorId: _selectedRole == AppConstants.rolePatient
+                ? _selectedDoctorId
+                : null,
           );
     }
   }
@@ -66,6 +68,8 @@ class _RegisterPageState extends State<RegisterPage> {
           if (state is AuthAuthenticated) {
             if (state.user.isDoctor) {
               context.go(RouteNames.doctorDashboard);
+            } else if (state.user.isLab) {
+              context.go(RouteNames.labDashboard);
             } else {
               context.go(RouteNames.patientDashboard);
             }
@@ -105,6 +109,10 @@ class _RegisterPageState extends State<RegisterPage> {
                       if (_selectedRole == AppConstants.rolePatient) ...[
                         SizedBox(height: 20.h),
                         _buildDoctorSelector(context, state),
+                      ],
+                      if (_selectedRole == AppConstants.roleLab) ...[
+                        SizedBox(height: 20.h),
+                        _buildLabInfoCard(),
                       ],
                       SizedBox(height: 32.h),
                       _buildRegisterButton(context, state),
@@ -207,6 +215,11 @@ class _RegisterPageState extends State<RegisterPage> {
               label: Text('Doktor'),
               icon: Icon(Icons.local_hospital_outlined),
             ),
+            ButtonSegment(
+              value: AppConstants.roleLab,
+              label: Text('Lab'),
+              icon: Icon(Icons.science_outlined),
+            ),
           ],
           selected: {_selectedRole},
           onSelectionChanged: (value) {
@@ -217,6 +230,32 @@ class _RegisterPageState extends State<RegisterPage> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildLabInfoCard() {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0F2F1),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFF80CBC4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Color(0xFF00695C)),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              'Laboratuvar hesabı; doktorların oluşturduğu tahlil isteklerini görür ve sonuç PDF\'lerini yükler.',
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: const Color(0xFF004D40),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

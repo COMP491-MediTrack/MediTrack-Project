@@ -6,6 +6,7 @@ import 'package:meditrack/features/lab_results/data/models/test_request_model.da
 abstract class TestRequestRemoteDatasource {
   Future<void> createTestRequest(TestRequestModel testRequest);
   Future<List<TestRequestModel>> getPatientTestRequests(String patientId);
+  Future<List<TestRequestModel>> getAllTestRequests();
 }
 
 @LazySingleton(as: TestRequestRemoteDatasource)
@@ -27,6 +28,18 @@ class TestRequestRemoteDatasourceImpl implements TestRequestRemoteDatasource {
     final snapshot = await _firestore
         .collection('test_requests')
         .where('patient_id', isEqualTo: patientId)
+        .orderBy('created_at', descending: true)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => TestRequestModel.fromFirestore(doc))
+        .toList();
+  }
+
+  @override
+  Future<List<TestRequestModel>> getAllTestRequests() async {
+    final snapshot = await _firestore
+        .collection('test_requests')
         .orderBy('created_at', descending: true)
         .get();
 

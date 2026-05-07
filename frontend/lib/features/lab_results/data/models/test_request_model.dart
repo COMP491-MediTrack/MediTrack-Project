@@ -5,6 +5,7 @@ class TestRequestModel extends TestRequestEntity {
   const TestRequestModel({
     required super.id,
     required super.patientId,
+    super.patientName,
     required super.doctorId,
     required super.doctorName,
     required super.requestedTests,
@@ -17,6 +18,7 @@ class TestRequestModel extends TestRequestEntity {
     return TestRequestModel(
       id: doc.id,
       patientId: data['patient_id'] as String,
+      patientName: data['patient_name'] as String?,
       doctorId: data['doctor_id'] as String,
       doctorName: data['doctor_name'] as String,
       requestedTests: List<String>.from(data['requested_tests'] ?? []),
@@ -28,6 +30,7 @@ class TestRequestModel extends TestRequestEntity {
   Map<String, dynamic> toFirestore() {
     return {
       'patient_id': patientId,
+      if (patientName != null) 'patient_name': patientName,
       'doctor_id': doctorId,
       'doctor_name': doctorName,
       'requested_tests': requestedTests,

@@ -46,6 +46,8 @@ class _LoginPageState extends State<LoginPage> {
           if (state is AuthAuthenticated) {
             if (state.user.isDoctor) {
               context.go(RouteNames.doctorDashboard);
+            } else if (state.user.isLab) {
+              context.go(RouteNames.labDashboard);
             } else {
               context.go(RouteNames.patientDashboard);
             }

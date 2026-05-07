@@ -8,6 +8,7 @@ import 'package:meditrack/features/auth/domain/entities/user_entity.dart';
 import 'package:meditrack/features/auth/presentation/pages/login_page.dart';
 import 'package:meditrack/features/auth/presentation/pages/register_page.dart';
 import 'package:meditrack/features/dashboard/presentation/pages/doctor_dashboard_page.dart';
+import 'package:meditrack/features/dashboard/presentation/pages/lab_dashboard_page.dart';
 import 'package:meditrack/features/dashboard/presentation/pages/patient_dashboard_page.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
 import 'package:meditrack/features/prescription/presentation/pages/create_prescription_page.dart';
@@ -65,6 +66,10 @@ class AppRouter {
       GoRoute(
         path: RouteNames.patientDashboard,
         builder: (context, state) => const PatientDashboardPage(),
+      ),
+      GoRoute(
+        path: RouteNames.labDashboard,
+        builder: (context, state) => const LabDashboardPage(),
       ),
       GoRoute(
         path: RouteNames.createPrescription,
