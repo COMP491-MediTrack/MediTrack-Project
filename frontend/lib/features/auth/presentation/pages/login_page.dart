@@ -39,54 +39,51 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<AuthCubit>(),
-      child: BlocConsumer<AuthCubit, AuthState>(
-        listener: (context, state) {
-          if (state is AuthAuthenticated) {
-            if (state.user.isDoctor) {
-              context.go(RouteNames.doctorDashboard);
-            } else {
-              context.go(RouteNames.patientDashboard);
-            }
-          } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
-            );
+    return BlocConsumer<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is AuthAuthenticated) {
+          if (state.user.isDoctor) {
+            context.go(RouteNames.doctorDashboard);
+          } else {
+            context.go(RouteNames.patientDashboard);
           }
-        },
-        builder: (context, state) {
-          return Scaffold(
-            body: SafeArea(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(height: 64.h),
-                      _buildHeader(context),
-                      SizedBox(height: 48.h),
-                      _buildEmailField(),
-                      SizedBox(height: 16.h),
-                      _buildPasswordField(),
-                      SizedBox(height: 32.h),
-                      _buildLoginButton(context, state),
-                      SizedBox(height: 16.h),
-                      _buildRegisterLink(context),
-                      SizedBox(height: 24.h),
-                    ],
-                  ),
+        } else if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 64.h),
+                    _buildHeader(context),
+                    SizedBox(height: 48.h),
+                    _buildEmailField(),
+                    SizedBox(height: 16.h),
+                    _buildPasswordField(),
+                    SizedBox(height: 32.h),
+                    _buildLoginButton(context, state),
+                    SizedBox(height: 16.h),
+                    _buildRegisterLink(context),
+                    SizedBox(height: 24.h),
+                  ],
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 

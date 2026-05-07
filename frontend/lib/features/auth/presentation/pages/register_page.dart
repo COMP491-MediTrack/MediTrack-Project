@@ -28,6 +28,14 @@ class _RegisterPageState extends State<RegisterPage> {
   List<UserEntity> _doctors = [];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthCubit>().loadDoctors();
+    });
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
@@ -55,70 +63,63 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) {
-        final cubit = getIt<AuthCubit>();
-        cubit.loadDoctors();
-        return cubit;
-      },
-      child: BlocConsumer<AuthCubit, AuthState>(
-        listener: (context, state) {
-          if (state is AuthAuthenticated) {
-            if (state.user.isDoctor) {
-              context.go(RouteNames.doctorDashboard);
-            } else {
-              context.go(RouteNames.patientDashboard);
-            }
-          } else if (state is AuthDoctorsLoaded) {
-            setState(() => _doctors = state.doctors);
-          } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
+    return BlocConsumer<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is AuthAuthenticated) {
+          if (state.user.isDoctor) {
+            context.go(RouteNames.doctorDashboard);
+          } else {
+            context.go(RouteNames.patientDashboard);
           }
-        },
-        builder: (context, state) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Kayıt Ol'),
-              centerTitle: true,
+        } else if (state is AuthDoctorsLoaded) {
+          setState(() => _doctors = state.doctors);
+        } else if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.error,
             ),
-            body: SafeArea(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(height: 24.h),
-                      _buildNameField(),
-                      SizedBox(height: 16.h),
-                      _buildEmailField(),
-                      SizedBox(height: 16.h),
-                      _buildPasswordField(),
-                      SizedBox(height: 24.h),
-                      _buildRoleSelector(context),
-                      if (_selectedRole == AppConstants.rolePatient) ...[
-                        SizedBox(height: 20.h),
-                        _buildDoctorSelector(context, state),
-                      ],
-                      SizedBox(height: 32.h),
-                      _buildRegisterButton(context, state),
-                      SizedBox(height: 16.h),
-                      _buildLoginLink(context),
-                      SizedBox(height: 24.h),
+          );
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Kayıt Ol'),
+            centerTitle: true,
+          ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: 24.h),
+                    _buildNameField(),
+                    SizedBox(height: 16.h),
+                    _buildEmailField(),
+                    SizedBox(height: 16.h),
+                    _buildPasswordField(),
+                    SizedBox(height: 24.h),
+                    _buildRoleSelector(context),
+                    if (_selectedRole == AppConstants.rolePatient) ...[
+                      SizedBox(height: 20.h),
+                      _buildDoctorSelector(context, state),
                     ],
-                  ),
+                    SizedBox(height: 32.h),
+                    _buildRegisterButton(context, state),
+                    SizedBox(height: 16.h),
+                    _buildLoginLink(context),
+                    SizedBox(height: 24.h),
+                  ],
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 

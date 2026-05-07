@@ -27,8 +27,24 @@ class PatientDashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => getIt<DashboardCubit>()),
-        BlocProvider(create: (_) => getIt<PrescriptionCubit>()),
+        BlocProvider(create: (context) {
+          final cubit = getIt<DashboardCubit>();
+          final authState = context.read<AuthCubit>().state;
+          if (authState is AuthAuthenticated) {
+            if (authState.user.doctorId != null) {
+              cubit.loadDoctor(authState.user.doctorId!);
+            }
+          }
+          return cubit;
+        }),
+        BlocProvider(create: (context) {
+          final cubit = getIt<PrescriptionCubit>();
+          final authState = context.read<AuthCubit>().state;
+          if (authState is AuthAuthenticated) {
+            cubit.loadPatientPrescriptions(authState.user.uid);
+          }
+          return cubit;
+        }),
         BlocProvider(
             create: (_) =>
                 WeatherCubit(WeatherRemoteDataSourceImpl(getIt<Dio>()))

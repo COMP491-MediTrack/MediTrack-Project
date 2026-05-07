@@ -7,7 +7,7 @@ import 'package:meditrack/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:meditrack/features/auth/domain/usecases/register_usecase.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
 
-@lazySingleton
+@LazySingleton()
 class AuthCubit extends Cubit<AuthState> {
   final LoginUseCase _loginUseCase;
   final RegisterUseCase _registerUseCase;

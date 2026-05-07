@@ -178,7 +178,7 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i468.LogoutUseCase(gh<_i1038.AuthRepository>()));
     gh.lazySingleton<_i8.GetCurrentUserUseCase>(
         () => _i8.GetCurrentUserUseCase(gh<_i1038.AuthRepository>()));
-    gh.factory<_i596.AuthCubit>(() => _i596.AuthCubit(
+    gh.lazySingleton<_i596.AuthCubit>(() => _i596.AuthCubit(
           gh<_i852.LoginUseCase>(),
           gh<_i1050.RegisterUseCase>(),
           gh<_i8.GetCurrentUserUseCase>(),
