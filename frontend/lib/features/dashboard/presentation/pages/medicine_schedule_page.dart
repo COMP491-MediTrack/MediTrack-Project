@@ -252,13 +252,26 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
 
                 // Extract all active drugs
                 final List<DrugItemEntity> allDrugs = [];
+                final List<_ScheduledDrugEntry> scheduleEntries = [];
                 for (var p in activePrescriptions) {
                   allDrugs.addAll(p.drugs);
+                  for (final drug in p.drugs) {
+                    scheduleEntries.add(
+                      _ScheduledDrugEntry(
+                        drug: drug,
+                        prescriptionDate: DateTime(
+                          p.createdAt.year,
+                          p.createdAt.month,
+                          p.createdAt.day,
+                        ),
+                      ),
+                    );
+                  }
                 }
 
                 return TabBarView(
                   children: [
-                    _buildWeeklySchedule(allDrugs),
+                    _buildWeeklySchedule(scheduleEntries),
                     _buildStocks(allDrugs),
                   ],
                 );
@@ -271,7 +284,7 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
     );
   }
 
-  Widget _buildWeeklySchedule(List<DrugItemEntity> drugs) {
+  Widget _buildWeeklySchedule(List<_ScheduledDrugEntry> entries) {
     final days = [
       'Pazartesi',
       'Salı',
@@ -281,6 +294,9 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
       'Cumartesi',
       'Pazar',
     ];
+    final now = DateTime.now();
+    final todayDate = DateTime(now.year, now.month, now.day);
+    final mondayOfThisWeek = todayDate.subtract(Duration(days: now.weekday - 1));
 
     return ListView.builder(
       padding: EdgeInsets.all(16.w),
@@ -292,7 +308,28 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
 
         final dayIndex = index - 1;
         final dayName = days[dayIndex];
+        final dayDate = mondayOfThisWeek.add(Duration(days: dayIndex));
         final isToday = dayIndex == DateTime.now().weekday - 1;
+        final dayEntries = entries.where((entry) {
+          final drug = entry.drug;
+          final startDate = entry.prescriptionDate;
+          final endDate = startDate.add(Duration(days: drug.durationDays - 1));
+          final isInTreatmentWindow =
+              !dayDate.isBefore(startDate) && !dayDate.isAfter(endDate);
+
+          final totalStock =
+              _calculateDosesPerDay(drug.frequency) * drug.durationDays;
+          final takenCount = _takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
+          final remaining = (totalStock - takenCount).clamp(0, totalStock);
+          if (!isInTreatmentWindow) return false;
+
+          // Keep today's/past entries visible as treatment history,
+          // hide only future entries when stock is already exhausted.
+          final isFutureDay = dayDate.isAfter(todayDate);
+          if (isFutureDay && remaining <= 0) return false;
+          return true;
+        }).toList();
+
         return Container(
           margin: EdgeInsets.only(bottom: 8.h),
           decoration: BoxDecoration(
@@ -308,7 +345,21 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
             ),
             initiallyExpanded:
                 isToday, // Expand today by default for quick adherence action
-            children: drugs.map((drug) {
+            children: dayEntries.isEmpty
+                ? [
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+                      child: Text(
+                        'Bu gün için planlı ilaç bulunmuyor.',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ]
+                : dayEntries.map((entry) {
+              final drug = entry.drug;
               final visual = _medicineVisual(drug);
               final totalStock =
                   _calculateDosesPerDay(drug.frequency) * drug.durationDays;
@@ -529,4 +580,14 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
       },
     );
   }
+}
+
+class _ScheduledDrugEntry {
+  final DrugItemEntity drug;
+  final DateTime prescriptionDate;
+
+  const _ScheduledDrugEntry({
+    required this.drug,
+    required this.prescriptionDate,
+  });
 }
