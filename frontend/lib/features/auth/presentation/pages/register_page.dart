@@ -9,25 +9,25 @@ import 'package:meditrack/core/theme/app_colors.dart';
 import 'package:meditrack/features/auth/domain/entities/user_entity.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
- 
+
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
- 
+
   @override
   State<RegisterPage> createState() => _RegisterPageState();
 }
- 
+
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
- 
+
   bool _obscurePassword = true;
   String _selectedRole = AppConstants.rolePatient;
   String? _selectedDoctorId;
   List<UserEntity> _doctors = [];
- 
+
   @override
   void initState() {
     super.initState();
@@ -35,7 +35,7 @@ class _RegisterPageState extends State<RegisterPage> {
       context.read<AuthCubit>().loadDoctors();
     });
   }
- 
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -43,7 +43,7 @@ class _RegisterPageState extends State<RegisterPage> {
     _passwordController.dispose();
     super.dispose();
   }
- 
+
   void _onRegisterPressed(BuildContext context) {
     if (_formKey.currentState?.validate() ?? false) {
       if (_selectedRole == AppConstants.rolePatient && _selectedDoctorId == null) {
@@ -63,7 +63,7 @@ class _RegisterPageState extends State<RegisterPage> {
           );
     }
   }
- 
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -138,7 +138,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
     );
   }
- 
+
   Widget _buildNameField() {
     return TextFormField(
       controller: _nameController,
@@ -156,7 +156,7 @@ class _RegisterPageState extends State<RegisterPage> {
       },
     );
   }
- 
+
   Widget _buildEmailField() {
     return TextFormField(
       controller: _emailController,
@@ -173,7 +173,7 @@ class _RegisterPageState extends State<RegisterPage> {
       },
     );
   }
- 
+
   Widget _buildPasswordField() {
     return TextFormField(
       controller: _passwordController,
@@ -200,7 +200,7 @@ class _RegisterPageState extends State<RegisterPage> {
       },
     );
   }
- 
+
   Widget _buildRoleSelector(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,7 +241,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ],
     );
   }
- 
+
   Widget _buildLabInfoCard() {
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -267,7 +267,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
     );
   }
- 
+
   Widget _buildDoctorSelector(BuildContext context, AuthState state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,7 +337,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ],
     );
   }
- 
+
   Widget _buildRegisterButton(BuildContext context, AuthState state) {
     final isLoading = state is AuthLoading;
     return FilledButton(
@@ -357,7 +357,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
     );
   }
- 
+
   Widget _buildLoginLink(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -377,6 +377,3 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
- 
-
-

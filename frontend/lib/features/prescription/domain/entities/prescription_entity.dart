@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:meditrack/features/prescription/domain/entities/ddi_result_entity.dart';
 import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 
 class PrescriptionEntity extends Equatable {
@@ -10,6 +11,7 @@ class PrescriptionEntity extends Equatable {
   final List<DrugItemEntity> drugs;
   final String status;
   final DateTime createdAt;
+  final List<DdiInteractionEntity> interactions;
 
   const PrescriptionEntity({
     required this.id,
@@ -20,10 +22,12 @@ class PrescriptionEntity extends Equatable {
     required this.drugs,
     required this.status,
     required this.createdAt,
+    this.interactions = const [],
   });
 
   bool get isActive => status == 'active';
+  bool get hasDdiWarnings => interactions.isNotEmpty;
 
   @override
-  List<Object?> get props => [id, doctorId, patientId, drugs, status, createdAt];
+  List<Object?> get props => [id, doctorId, patientId, drugs, status, createdAt, interactions];
 }

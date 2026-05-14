@@ -36,6 +36,24 @@ class DdiLoaded extends PrescriptionState {
   List<Object?> get props => [result];
 }
 
+// DDI Açıklama
+class DdiExplaining extends PrescriptionState {
+  final int interactionIndex;
+  const DdiExplaining(this.interactionIndex);
+
+  @override
+  List<Object?> get props => [interactionIndex];
+}
+
+class DdiExplanationLoaded extends PrescriptionState {
+  final int interactionIndex;
+  final String explanation;
+  const DdiExplanationLoaded(this.interactionIndex, this.explanation);
+
+  @override
+  List<Object?> get props => [interactionIndex, explanation];
+}
+
 // Reçete listesi
 class PrescriptionListLoaded extends PrescriptionState {
   final List<PrescriptionEntity> prescriptions;

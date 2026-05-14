@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:injectable/injectable.dart';
 import 'package:meditrack/core/constants/app_constants.dart';
 import 'package:meditrack/features/prescription/data/models/prescription_model.dart';
+import 'package:meditrack/features/prescription/domain/entities/ddi_result_entity.dart';
 import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 
 abstract class PrescriptionRemoteDataSource {
@@ -11,9 +12,11 @@ abstract class PrescriptionRemoteDataSource {
     required String patientName,
     required String doctorName,
     required List<DrugItemEntity> drugs,
+    List<DdiInteractionEntity> interactions,
   });
   Future<List<PrescriptionModel>> getPatientPrescriptions(String patientId);
   Future<List<PrescriptionModel>> getDoctorPrescriptions(String doctorId);
+  Stream<List<PrescriptionModel>> watchPatientPrescriptions(String patientId);
 }
 
 @LazySingleton(as: PrescriptionRemoteDataSource)
@@ -29,6 +32,7 @@ class PrescriptionRemoteDataSourceImpl implements PrescriptionRemoteDataSource {
     required String patientName,
     required String doctorName,
     required List<DrugItemEntity> drugs,
+    List<DdiInteractionEntity> interactions = const [],
   }) async {
     final doctorId = _auth.currentUser!.uid;
     final docRef = _firestore.collection(AppConstants.prescriptionsCollection).doc();
@@ -41,6 +45,7 @@ class PrescriptionRemoteDataSourceImpl implements PrescriptionRemoteDataSource {
       drugs: drugs,
       status: 'active',
       createdAt: DateTime.now(),
+      interactions: interactions,
     );
     await docRef.set(prescription.toFirestore());
     return prescription;
@@ -68,5 +73,17 @@ class PrescriptionRemoteDataSourceImpl implements PrescriptionRemoteDataSource {
     return snapshot.docs
         .map((doc) => PrescriptionModel.fromFirestore(doc.data(), doc.id))
         .toList();
+  }
+
+  @override
+  Stream<List<PrescriptionModel>> watchPatientPrescriptions(String patientId) {
+    return _firestore
+        .collection(AppConstants.prescriptionsCollection)
+        .where('patient_id', isEqualTo: patientId)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PrescriptionModel.fromFirestore(doc.data(), doc.id))
+            .toList());
   }
 }

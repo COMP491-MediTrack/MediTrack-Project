@@ -1,4 +1,5 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// dart format width=80
 
 // **************************************************************************
 // InjectableConfigGenerator
@@ -31,8 +32,12 @@ import 'package:meditrack/features/auth/domain/usecases/register_usecase.dart'
     as _i1050;
 import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart'
     as _i596;
+import 'package:meditrack/features/dashboard/data/datasources/weather_remote_datasource.dart'
+    as _i312;
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_cubit.dart'
     as _i172;
+import 'package:meditrack/features/dashboard/presentation/cubit/weather_cubit.dart'
+    as _i957;
 import 'package:meditrack/features/lab_results/data/datasources/lab_result_remote_datasource.dart'
     as _i1017;
 import 'package:meditrack/features/lab_results/data/datasources/test_request_remote_datasource.dart'
@@ -83,68 +88,93 @@ import 'package:meditrack/features/prescription/domain/usecases/check_ddi_usecas
     as _i23;
 import 'package:meditrack/features/prescription/domain/usecases/create_prescription_usecase.dart'
     as _i118;
+import 'package:meditrack/features/prescription/domain/usecases/explain_ddi_usecase.dart'
+    as _i284;
 import 'package:meditrack/features/prescription/domain/usecases/get_doctor_prescriptions_usecase.dart'
     as _i920;
 import 'package:meditrack/features/prescription/domain/usecases/get_patient_prescriptions_usecase.dart'
     as _i872;
 import 'package:meditrack/features/prescription/domain/usecases/search_drugs_usecase.dart'
     as _i92;
+import 'package:meditrack/features/prescription/domain/usecases/watch_patient_prescriptions_usecase.dart'
+    as _i890;
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart'
     as _i840;
 
 extension GetItInjectableX on _i174.GetIt {
-// initializes the registration of main-scope dependencies inside of GetIt
+  // initializes the registration of main-scope dependencies inside of GetIt
   _i174.GetIt init({
     String? environment,
     _i526.EnvironmentFilter? environmentFilter,
   }) {
-    final gh = _i526.GetItHelper(
-      this,
-      environment,
-      environmentFilter,
-    );
+    final gh = _i526.GetItHelper(this, environment, environmentFilter);
     final firebaseModule = _$FirebaseModule();
     gh.lazySingleton<_i59.FirebaseAuth>(() => firebaseModule.firebaseAuth);
     gh.lazySingleton<_i974.FirebaseFirestore>(() => firebaseModule.firestore);
     gh.lazySingleton<_i457.FirebaseStorage>(() => firebaseModule.storage);
     gh.lazySingleton<_i361.Dio>(() => firebaseModule.dio);
     gh.lazySingleton<_i60.DrugRemoteDataSource>(
-        () => _i60.DrugRemoteDataSourceImpl(gh<_i361.Dio>()));
+      () => _i60.DrugRemoteDataSourceImpl(gh<_i361.Dio>()),
+    );
     gh.lazySingleton<_i1020.AuthRemoteDataSource>(
-        () => _i1020.AuthRemoteDataSourceImpl(
-              gh<_i59.FirebaseAuth>(),
-              gh<_i974.FirebaseFirestore>(),
-            ));
-    gh.lazySingleton<_i635.TestRequestRemoteDatasource>(() =>
-        _i635.TestRequestRemoteDatasourceImpl(gh<_i974.FirebaseFirestore>()));
-    gh.factory<_i172.DashboardCubit>(
-        () => _i172.DashboardCubit(gh<_i974.FirebaseFirestore>()));
+      () => _i1020.AuthRemoteDataSourceImpl(
+        gh<_i59.FirebaseAuth>(),
+        gh<_i974.FirebaseFirestore>(),
+      ),
+    );
+    gh.lazySingleton<_i312.WeatherRemoteDataSource>(
+      () => _i312.WeatherRemoteDataSourceImpl(gh<_i361.Dio>()),
+    );
     gh.lazySingleton<_i1017.LabResultRemoteDataSource>(
-        () => _i1017.LabResultRemoteDataSourceImpl(
-              gh<_i974.FirebaseFirestore>(),
-              gh<_i457.FirebaseStorage>(),
-            ));
-    gh.lazySingleton<_i607.PrescriptionRemoteDataSource>(
-        () => _i607.PrescriptionRemoteDataSourceImpl(
-              gh<_i974.FirebaseFirestore>(),
-              gh<_i59.FirebaseAuth>(),
-            ));
+      () => _i1017.LabResultRemoteDataSourceImpl(
+        gh<_i974.FirebaseFirestore>(),
+        gh<_i457.FirebaseStorage>(),
+      ),
+    );
     gh.lazySingleton<_i104.PharmacyRemoteDataSource>(
-        () => _i104.PharmacyRemoteDataSourceImpl());
-    gh.lazySingleton<_i1061.PharmacyRepository>(() =>
-        _i83.PharmacyRepositoryImpl(
-            remoteDataSource: gh<_i104.PharmacyRemoteDataSource>()));
+      () => _i104.PharmacyRemoteDataSourceImpl(),
+    );
     gh.lazySingleton<_i1038.AuthRepository>(
-        () => _i549.AuthRepositoryImpl(gh<_i1020.AuthRemoteDataSource>()));
-    gh.lazySingleton<_i692.LabResultRepository>(() =>
-        _i1016.LabResultRepositoryImpl(gh<_i1017.LabResultRemoteDataSource>()));
-    gh.lazySingleton<_i1059.TestRequestRepository>(() =>
-        _i724.TestRequestRepositoryImpl(
-            gh<_i635.TestRequestRemoteDatasource>()));
-    gh.lazySingleton<_i556.GetNearbyPharmacies>(
-        () => _i556.GetNearbyPharmacies(gh<_i1061.PharmacyRepository>()));
-    gh.factory<_i297.PharmacyCubit>(() => _i297.PharmacyCubit(
-        getNearbyPharmacies: gh<_i556.GetNearbyPharmacies>()));
+      () => _i549.AuthRepositoryImpl(gh<_i1020.AuthRemoteDataSource>()),
+    );
+    gh.lazySingleton<_i8.GetCurrentUserUseCase>(
+      () => _i8.GetCurrentUserUseCase(gh<_i1038.AuthRepository>()),
+    );
+    gh.lazySingleton<_i852.LoginUseCase>(
+      () => _i852.LoginUseCase(gh<_i1038.AuthRepository>()),
+    );
+    gh.lazySingleton<_i468.LogoutUseCase>(
+      () => _i468.LogoutUseCase(gh<_i1038.AuthRepository>()),
+    );
+    gh.lazySingleton<_i1050.RegisterUseCase>(
+      () => _i1050.RegisterUseCase(gh<_i1038.AuthRepository>()),
+    );
+    gh.factory<_i957.WeatherCubit>(
+      () => _i957.WeatherCubit(gh<_i312.WeatherRemoteDataSource>()),
+    );
+    gh.lazySingleton<_i607.PrescriptionRemoteDataSource>(
+      () => _i607.PrescriptionRemoteDataSourceImpl(
+        gh<_i974.FirebaseFirestore>(),
+        gh<_i59.FirebaseAuth>(),
+      ),
+    );
+    gh.lazySingleton<_i635.TestRequestRemoteDatasource>(
+      () =>
+          _i635.TestRequestRemoteDatasourceImpl(gh<_i974.FirebaseFirestore>()),
+    );
+    gh.factory<_i172.DashboardCubit>(
+      () => _i172.DashboardCubit(gh<_i974.FirebaseFirestore>()),
+    );
+    gh.lazySingleton<_i692.LabResultRepository>(
+      () => _i1016.LabResultRepositoryImpl(
+        gh<_i1017.LabResultRemoteDataSource>(),
+      ),
+    );
+    gh.lazySingleton<_i1059.TestRequestRepository>(
+      () => _i724.TestRequestRepositoryImpl(
+        gh<_i635.TestRequestRemoteDatasource>(),
+      ),
+    );
     gh.lazySingleton<_i202.PrescriptionRepository>(
         () => _i482.PrescriptionRepositoryImpl(
               gh<_i60.DrugRemoteDataSource>(),
@@ -206,6 +236,99 @@ extension GetItInjectableX on _i174.GetIt {
           gh<_i872.GetPatientPrescriptionsUseCase>(),
           gh<_i920.GetDoctorPrescriptionsUseCase>(),
         ));
+      () => _i482.PrescriptionRepositoryImpl(
+        gh<_i60.DrugRemoteDataSource>(),
+        gh<_i607.PrescriptionRemoteDataSource>(),
+      ),
+    );
+    gh.lazySingleton<_i596.AuthCubit>(
+      () => _i596.AuthCubit(
+        gh<_i852.LoginUseCase>(),
+        gh<_i1050.RegisterUseCase>(),
+        gh<_i8.GetCurrentUserUseCase>(),
+        gh<_i468.LogoutUseCase>(),
+        gh<_i1038.AuthRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i1061.PharmacyRepository>(
+      () => _i83.PharmacyRepositoryImpl(
+        remoteDataSource: gh<_i104.PharmacyRemoteDataSource>(),
+      ),
+    );
+    gh.lazySingleton<_i592.DeleteLabResultUseCase>(
+      () => _i592.DeleteLabResultUseCase(gh<_i692.LabResultRepository>()),
+    );
+    gh.lazySingleton<_i179.GetLabResultsUseCase>(
+      () => _i179.GetLabResultsUseCase(gh<_i692.LabResultRepository>()),
+    );
+    gh.lazySingleton<_i500.UploadLabResultUseCase>(
+      () => _i500.UploadLabResultUseCase(gh<_i692.LabResultRepository>()),
+    );
+    gh.factory<_i834.LabResultCubit>(
+      () => _i834.LabResultCubit(
+        gh<_i179.GetLabResultsUseCase>(),
+        gh<_i500.UploadLabResultUseCase>(),
+        gh<_i592.DeleteLabResultUseCase>(),
+      ),
+    );
+    gh.lazySingleton<_i23.CheckDdiUseCase>(
+      () => _i23.CheckDdiUseCase(gh<_i202.PrescriptionRepository>()),
+    );
+    gh.lazySingleton<_i118.CreatePrescriptionUseCase>(
+      () => _i118.CreatePrescriptionUseCase(gh<_i202.PrescriptionRepository>()),
+    );
+    gh.lazySingleton<_i284.ExplainDdiUseCase>(
+      () => _i284.ExplainDdiUseCase(gh<_i202.PrescriptionRepository>()),
+    );
+    gh.lazySingleton<_i920.GetDoctorPrescriptionsUseCase>(
+      () => _i920.GetDoctorPrescriptionsUseCase(
+        gh<_i202.PrescriptionRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i872.GetPatientPrescriptionsUseCase>(
+      () => _i872.GetPatientPrescriptionsUseCase(
+        gh<_i202.PrescriptionRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i92.SearchDrugsUseCase>(
+      () => _i92.SearchDrugsUseCase(gh<_i202.PrescriptionRepository>()),
+    );
+    gh.lazySingleton<_i890.WatchPatientPrescriptionsUseCase>(
+      () => _i890.WatchPatientPrescriptionsUseCase(
+        gh<_i202.PrescriptionRepository>(),
+      ),
+    );
+    gh.lazySingleton<_i851.CreateTestRequest>(
+      () => _i851.CreateTestRequest(gh<_i1059.TestRequestRepository>()),
+    );
+    gh.lazySingleton<_i119.GetPatientTestRequests>(
+      () => _i119.GetPatientTestRequests(gh<_i1059.TestRequestRepository>()),
+    );
+    gh.factory<_i139.TestRequestCubit>(
+      () => _i139.TestRequestCubit(
+        gh<_i851.CreateTestRequest>(),
+        gh<_i119.GetPatientTestRequests>(),
+      ),
+    );
+    gh.lazySingleton<_i556.GetNearbyPharmacies>(
+      () => _i556.GetNearbyPharmacies(gh<_i1061.PharmacyRepository>()),
+    );
+    gh.factory<_i297.PharmacyCubit>(
+      () => _i297.PharmacyCubit(
+        getNearbyPharmacies: gh<_i556.GetNearbyPharmacies>(),
+      ),
+    );
+    gh.factory<_i840.PrescriptionCubit>(
+      () => _i840.PrescriptionCubit(
+        gh<_i92.SearchDrugsUseCase>(),
+        gh<_i23.CheckDdiUseCase>(),
+        gh<_i284.ExplainDdiUseCase>(),
+        gh<_i118.CreatePrescriptionUseCase>(),
+        gh<_i872.GetPatientPrescriptionsUseCase>(),
+        gh<_i920.GetDoctorPrescriptionsUseCase>(),
+        gh<_i890.WatchPatientPrescriptionsUseCase>(),
+      ),
+    );
     return this;
   }
 }

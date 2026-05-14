@@ -5,6 +5,7 @@ class DdiInteractionModel extends DdiInteractionEntity {
     required super.drug1,
     required super.drug2,
     required super.description,
+    super.aiExplanation,
   });
 
   factory DdiInteractionModel.fromJson(Map<String, dynamic> json) {
@@ -12,6 +13,7 @@ class DdiInteractionModel extends DdiInteractionEntity {
       drug1: json['drug1'] as String,
       drug2: json['drug2'] as String,
       description: json['description'] as String,
+      aiExplanation: json['ai_explanation'] as String?,
     );
   }
 }

@@ -43,11 +43,24 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
   }
 
   @override
+  Future<Either<Failure, String>> explainDdi(String drug1, String drug2, String description) async {
+    try {
+      final explanation = await _drugDataSource.explainDdi(drug1, drug2, description);
+      return Right(explanation);
+    } on DioException catch (e) {
+      return Left(ServerFailure(e.message ?? 'AI açıklaması alınamadı.'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, PrescriptionEntity>> createPrescription({
     required String patientId,
     required String patientName,
     required String doctorName,
     required List<DrugItemEntity> drugs,
+    List<DdiInteractionEntity> interactions = const [],
   }) async {
     try {
       final prescription = await _prescriptionDataSource.createPrescription(
@@ -55,6 +68,7 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
         patientName: patientName,
         doctorName: doctorName,
         drugs: drugs,
+        interactions: interactions,
       );
       return Right(prescription);
     } catch (e) {
@@ -80,5 +94,10 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
+  }
+
+  @override
+  Stream<List<PrescriptionEntity>> watchPatientPrescriptions(String patientId) {
+    return _prescriptionDataSource.watchPatientPrescriptions(patientId);
   }
 }

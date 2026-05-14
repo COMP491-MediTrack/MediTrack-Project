@@ -22,9 +22,18 @@ class DoctorDashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => getIt<AuthCubit>()..checkAuthStatus()),
-        BlocProvider(create: (_) => getIt<DashboardCubit>()),
-        BlocProvider(create: (_) => WeatherCubit(WeatherRemoteDataSourceImpl(getIt<Dio>()))..fetchWeather()),
+        BlocProvider(create: (context) {
+          final cubit = getIt<DashboardCubit>();
+          final authState = context.read<AuthCubit>().state;
+          if (authState is AuthAuthenticated) {
+            cubit.loadPatients(authState.user.uid);
+          }
+          return cubit;
+        }),
+        BlocProvider(
+            create: (_) =>
+                WeatherCubit(WeatherRemoteDataSourceImpl(getIt<Dio>()))
+                  ..fetchWeather()),
       ],
       child: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
@@ -65,10 +74,41 @@ class DoctorDashboardPage extends StatelessWidget {
       title: const Text('MediTrack'),
       centerTitle: false,
       actions: [
-        IconButton(
-          icon: const Icon(Icons.logout_outlined),
-          tooltip: 'Çıkış Yap',
-          onPressed: () => context.read<AuthCubit>().logout(),
+        PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'profile') {
+              context.push(RouteNames.profile);
+            } else if (value == 'logout') {
+              context.read<AuthCubit>().logout();
+            }
+          },
+          icon: CircleAvatar(
+            radius: 16.r,
+            backgroundColor: AppColors.primaryContainer,
+            child: Icon(Icons.person, size: 20.r, color: AppColors.primary),
+          ),
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'profile',
+              child: Row(
+                children: [
+                  Icon(Icons.person_outline, color: AppColors.textPrimary),
+                  SizedBox(width: 8),
+                  Text('Profilim'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, color: AppColors.error),
+                  SizedBox(width: 8),
+                  Text('Çıkış Yap'),
+                ],
+              ),
+            ),
+          ],
         ),
         SizedBox(width: 8.w),
       ],
@@ -303,14 +343,14 @@ class DoctorDashboardPage extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      patient.email,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                    // SizedBox(height: 2.h),
+                    // Text(
+                    //   patient.email,
+                    //   style: TextStyle(
+                    //     fontSize: 13.sp,
+                    //     color: AppColors.textSecondary,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

@@ -14,6 +14,7 @@ class AppConstants {
   static const String usersCollection = 'users';
   static const String prescriptionsCollection = 'prescriptions';
   static const String remindersCollection = 'reminders';
+  static const String adherenceCollection = 'adherence';
   static const String labResultsCollection = 'lab_results';
 
   // User roles

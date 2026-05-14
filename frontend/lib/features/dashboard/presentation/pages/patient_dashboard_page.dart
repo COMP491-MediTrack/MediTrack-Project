@@ -27,10 +27,28 @@ class PatientDashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => getIt<AuthCubit>()..checkAuthStatus()),
-        BlocProvider(create: (_) => getIt<DashboardCubit>()),
-        BlocProvider(create: (_) => getIt<PrescriptionCubit>()),
-        BlocProvider(create: (_) => WeatherCubit(WeatherRemoteDataSourceImpl(getIt<Dio>()))..fetchWeather()),
+        BlocProvider(create: (context) {
+          final cubit = getIt<DashboardCubit>();
+          final authState = context.read<AuthCubit>().state;
+          if (authState is AuthAuthenticated) {
+            if (authState.user.doctorId != null) {
+              cubit.loadDoctor(authState.user.doctorId!);
+            }
+          }
+          return cubit;
+        }),
+        BlocProvider(create: (context) {
+          final cubit = getIt<PrescriptionCubit>();
+          final authState = context.read<AuthCubit>().state;
+          if (authState is AuthAuthenticated) {
+            cubit.watchPatientPrescriptions(authState.user.uid);
+          }
+          return cubit;
+        }),
+        BlocProvider(
+            create: (_) =>
+                WeatherCubit(WeatherRemoteDataSourceImpl(getIt<Dio>()))
+                  ..fetchWeather()),
       ],
       child: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
@@ -40,7 +58,7 @@ class PatientDashboardPage extends StatelessWidget {
             if (state.user.doctorId != null) {
               context.read<DashboardCubit>().loadDoctor(state.user.doctorId!);
             }
-            context.read<PrescriptionCubit>().loadPatientPrescriptions(
+            context.read<PrescriptionCubit>().watchPatientPrescriptions(
               state.user.uid,
             );
           }
@@ -131,9 +149,9 @@ class PatientDashboardPage extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: AppColors.primaryLight,
+          color: AppColors.primaryContainer,
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppColors.primary.withAlpha(51)),
+          border: Border.all(color: AppColors.primary.withAlpha(77)),
         ),
         child: Row(
           children: [
@@ -152,7 +170,7 @@ class PatientDashboardPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15.sp,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: AppColors.primaryDark,
                     ),
                   ),
                   SizedBox(height: 2.h),
@@ -160,7 +178,7 @@ class PatientDashboardPage extends StatelessWidget {
                     'Haftalık programınızı ve ilaç stok durumunuzu görün.',
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: AppColors.textSecondary,
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -328,10 +346,41 @@ class PatientDashboardPage extends StatelessWidget {
       title: const Text('MediTrack'),
       centerTitle: false,
       actions: [
-        IconButton(
-          icon: const Icon(Icons.logout_outlined),
-          tooltip: 'Çıkış Yap',
-          onPressed: () => context.read<AuthCubit>().logout(),
+        PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'profile') {
+              context.push(RouteNames.profile);
+            } else if (value == 'logout') {
+              context.read<AuthCubit>().logout();
+            }
+          },
+          icon: CircleAvatar(
+            radius: 16.r,
+            backgroundColor: AppColors.primaryContainer,
+            child: Icon(Icons.person, size: 20.r, color: AppColors.primary),
+          ),
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'profile',
+              child: Row(
+                children: [
+                  Icon(Icons.person_outline, color: AppColors.textPrimary),
+                  SizedBox(width: 8),
+                  Text('Profilim'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, color: AppColors.error),
+                  SizedBox(width: 8),
+                  Text('Çıkış Yap'),
+                ],
+              ),
+            ),
+          ],
         ),
         SizedBox(width: 8.w),
       ],
@@ -547,15 +596,12 @@ class PatientDashboardPage extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (state is PrescriptionListLoaded) {
-                  final active = state.prescriptions
-                      .where((p) => p.isActive)
-                      .toList();
-                  if (active.isEmpty) {
+                  final active = state.prescriptions.where((p) => p.isActive).toList();
+                  if (active.isEmpty || user == null) {
                     return _emptyPrescriptions();
                   }
                   return Column(
                     children: active
-                        .take(2)
                         .map((p) => _buildPrescriptionCard(context, p))
                         .toList(),
                   );
@@ -615,22 +661,24 @@ class PatientDashboardPage extends StatelessWidget {
               children: [
                 Text(
                   'Dr. ${p.doctorName}',
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
                 ),
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
+                    color: p.isActive ? AppColors.primaryContainer : AppColors.errorContainer,
                     borderRadius: BorderRadius.circular(6.r),
+                    border: Border.all(
+                      color: p.isActive
+                          ? AppColors.primary.withAlpha(77)
+                          : AppColors.error.withAlpha(77),
+                    ),
                   ),
                   child: Text(
-                    'Aktif',
+                    p.isActive ? 'Aktif' : 'Tamamlandı',
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: AppColors.primary,
+                      color: p.isActive ? AppColors.primaryDark : AppColors.error,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -638,9 +686,14 @@ class PatientDashboardPage extends StatelessWidget {
               ],
             ),
             SizedBox(height: 6.h),
-            Text(
-              '${p.drugs.length} ilaç',
-              style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
+            ...p.drugs.map(
+              (drug) => Padding(
+                padding: EdgeInsets.only(bottom: 2.h),
+                child: Text(
+                  '• ${drug.brandName}',
+                  style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
+                ),
+              ),
             ),
             SizedBox(height: 4.h),
             Text(
@@ -671,4 +724,5 @@ class PatientDashboardPage extends StatelessWidget {
     ];
     return '${now.day} ${months[now.month - 1]} ${now.year}';
   }
+
 }
