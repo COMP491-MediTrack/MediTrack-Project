@@ -12,9 +12,9 @@ import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_state.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
-import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
+import 'package:meditrack/features/prescription/presentation/utils/prescription_status_helper.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/weather_cubit.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/weather_state.dart';
 import 'package:meditrack/features/dashboard/data/models/weather_model.dart';
@@ -561,15 +561,8 @@ class PatientDashboardPage extends StatelessWidget {
                         .where('patient_id', isEqualTo: user.uid)
                         .snapshots(),
                     builder: (context, adherenceSnapshot) {
-                      final takenDoseCountsByDrug = <String, int>{};
-                      for (final doc in adherenceSnapshot.data?.docs ?? []) {
-                        final data = doc.data();
-                        final drugKey = data['drug_key'] as String?;
-                        final doseCount = (data['dose_count'] as num?)?.toInt() ?? 1;
-                        if (drugKey == null || drugKey.isEmpty) continue;
-                        takenDoseCountsByDrug[drugKey] =
-                            (takenDoseCountsByDrug[drugKey] ?? 0) + doseCount;
-                      }
+                      final adherenceDocs =
+                          adherenceSnapshot.data?.docs ?? const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
 
                       return Column(
                         children: active
@@ -578,9 +571,10 @@ class PatientDashboardPage extends StatelessWidget {
                               (p) => _buildPrescriptionCard(
                                 context,
                                 p,
-                                isCurrentlyActive: _isPrescriptionCurrentlyActive(
+                                isCurrentlyActive:
+                                    PrescriptionStatusHelper.isPrescriptionCurrentlyActive(
                                   p,
-                                  takenDoseCountsByDrug,
+                                  adherenceDocs,
                                 ),
                               ),
                             )
@@ -716,56 +710,5 @@ class PatientDashboardPage extends StatelessWidget {
       'Aralık',
     ];
     return '${now.day} ${months[now.month - 1]} ${now.year}';
-  }
-
-  bool _isPrescriptionCurrentlyActive(
-    PrescriptionEntity prescription,
-    Map<String, int> takenDoseCountsByDrug,
-  ) {
-    if (!prescription.isActive) return false;
-    if (prescription.drugs.isEmpty) return false;
-
-    for (final drug in prescription.drugs) {
-      final totalStock = _calculateDosesPerDay(drug.frequency) * drug.durationDays;
-      if (totalStock <= 0) continue;
-      final takenCount = takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
-      final remaining = (totalStock - takenCount).clamp(0, totalStock);
-      if (remaining > 0) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  String _drugKey(DrugItemEntity drug) {
-    if (drug.barcode.isNotEmpty) {
-      return drug.barcode;
-    }
-    return '${drug.brandName}_${drug.frequency}_${drug.durationDays}'.toLowerCase();
-  }
-
-  int _calculateDosesPerDay(String frequency) {
-    final normalized = frequency.toLowerCase();
-
-    final turkishDailyMatch = RegExp(r'günde\s*(\d+)').firstMatch(normalized);
-    if (turkishDailyMatch != null) {
-      return int.tryParse(turkishDailyMatch.group(1) ?? '') ?? 1;
-    }
-
-    if (normalized.contains('x')) {
-      final parts = normalized.split('x');
-      if (parts.length == 2) {
-        final times = int.tryParse(parts[0].trim()) ?? 1;
-        final dose = int.tryParse(parts[1].trim()) ?? 1;
-        return times * dose;
-      }
-    }
-
-    if (normalized.contains('haftada')) {
-      return 1;
-    }
-
-    return 1;
   }
 }

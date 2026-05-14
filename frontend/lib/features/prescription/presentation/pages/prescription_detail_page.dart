@@ -1,8 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:meditrack/core/constants/app_constants.dart';
+import 'package:meditrack/core/di/injection.dart';
 import 'package:meditrack/core/theme/app_colors.dart';
 import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
+import 'package:meditrack/features/prescription/presentation/utils/prescription_status_helper.dart';
 
 class PrescriptionDetailPage extends StatelessWidget {
   final PrescriptionEntity prescription;
@@ -51,10 +55,23 @@ class PrescriptionDetailPage extends StatelessWidget {
           SizedBox(height: 10.h),
           _buildInfoRow(Icons.calendar_today_outlined, 'Tarih', _formatDate(prescription.createdAt)),
           SizedBox(height: 10.h),
-          _buildInfoRow(
-            Icons.check_circle_outline,
-            'Durum',
-            prescription.isActive ? 'Aktif' : 'Tamamlandı',
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: getIt<FirebaseFirestore>()
+                .collection(AppConstants.adherenceCollection)
+                .where('patient_id', isEqualTo: prescription.patientId)
+                .snapshots(),
+            builder: (context, adherenceSnapshot) {
+              final docs =
+                  adherenceSnapshot.data?.docs ?? const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+              final isCurrentlyActive =
+                  PrescriptionStatusHelper.isPrescriptionCurrentlyActive(prescription, docs);
+              final statusLabel = isCurrentlyActive ? 'Aktif' : 'İnaktif';
+              return _buildInfoRow(
+                Icons.check_circle_outline,
+                'Durum',
+                statusLabel,
+              );
+            },
           ),
         ],
       ),

@@ -6,8 +6,10 @@ import 'package:meditrack/core/constants/app_constants.dart';
 import 'package:meditrack/core/di/injection.dart';
 import 'package:meditrack/core/theme/app_colors.dart';
 import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
+import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
+import 'package:meditrack/features/prescription/presentation/utils/prescription_status_helper.dart';
 
 class MedicineSchedulePage extends StatefulWidget {
   final String patientId;
@@ -22,8 +24,7 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
   final FirebaseFirestore _firestore = getIt<FirebaseFirestore>();
   bool _isSavingTaken = false;
   bool _isLoadingAdherence = true;
-  Map<String, int> _takenDoseCountsByDrug = {};
-  Map<String, int> _todayTakenDoseCountsByDrug = {};
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _adherenceDocs = [];
 
   @override
   void initState() {
@@ -38,33 +39,9 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
           .where('patient_id', isEqualTo: widget.patientId)
           .get();
 
-      final counts = <String, int>{};
-      final todayCounts = <String, int>{};
-      final now = DateTime.now();
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        final drugKey = data['drug_key'] as String?;
-        final doseCount = (data['dose_count'] as num?)?.toInt() ?? 1;
-        if (drugKey == null || drugKey.isEmpty) continue;
-        counts[drugKey] = (counts[drugKey] ?? 0) + doseCount;
-
-        final takenAt = data['taken_at'];
-        DateTime? takenAtDate;
-        if (takenAt is Timestamp) {
-          takenAtDate = takenAt.toDate();
-        }
-        if (takenAtDate != null &&
-            takenAtDate.year == now.year &&
-            takenAtDate.month == now.month &&
-            takenAtDate.day == now.day) {
-          todayCounts[drugKey] = (todayCounts[drugKey] ?? 0) + doseCount;
-        }
-      }
-
       if (!mounted) return;
       setState(() {
-        _takenDoseCountsByDrug = counts;
-        _todayTakenDoseCountsByDrug = todayCounts;
+        _adherenceDocs = snapshot.docs;
       });
     } finally {
       if (mounted) {
@@ -73,20 +50,19 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
     }
   }
 
-  String _drugKey(DrugItemEntity drug) {
-    if (drug.barcode.isNotEmpty) {
-      return drug.barcode;
-    }
-    return '${drug.brandName}_${drug.frequency}_${drug.durationDays}'
-        .toLowerCase();
-  }
-
-  Future<void> _markDrugAsTaken(DrugItemEntity drug) async {
+  Future<void> _markDrugAsTaken(
+    DrugItemEntity drug,
+    PrescriptionEntity prescription,
+  ) async {
     setState(() => _isSavingTaken = true);
     try {
-      final drugKey = _drugKey(drug);
-      final dailyLimit = _calculateDosesPerDay(drug.frequency);
-      final todayTaken = _todayTakenDoseCountsByDrug[drugKey] ?? 0;
+      final drugKey = PrescriptionStatusHelper.drugKey(drug);
+      final dailyLimit = PrescriptionStatusHelper.calculateDosesPerDay(drug.frequency);
+      final todayTaken = PrescriptionStatusHelper.todayTakenForDrug(
+        _adherenceDocs,
+        prescription,
+        drug,
+      );
 
       if (todayTaken >= dailyLimit) {
         if (!mounted) return;
@@ -103,20 +79,16 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
 
       await _firestore.collection(AppConstants.adherenceCollection).add({
         'patient_id': widget.patientId,
+        'prescription_id': prescription.id,
         'drug_key': drugKey,
         'drug_name': drug.brandName,
         'dose_count': 1,
         'taken_at': Timestamp.now(),
       });
 
-      if (!mounted) return;
-      setState(() {
-        _takenDoseCountsByDrug[drugKey] =
-            (_takenDoseCountsByDrug[drugKey] ?? 0) + 1;
-        _todayTakenDoseCountsByDrug[drugKey] =
-            (_todayTakenDoseCountsByDrug[drugKey] ?? 0) + 1;
-      });
+      await _loadAdherenceCounts();
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${drug.brandName} için doz kaydedildi'),
@@ -144,30 +116,6 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
         setState(() => _isSavingTaken = false);
       }
     }
-  }
-
-  int _calculateDosesPerDay(String frequency) {
-    final normalized = frequency.toLowerCase();
-
-    final turkishDailyMatch = RegExp(r'günde\s*(\d+)').firstMatch(normalized);
-    if (turkishDailyMatch != null) {
-      return int.tryParse(turkishDailyMatch.group(1) ?? '') ?? 1;
-    }
-
-    if (normalized.contains('x')) {
-      final parts = normalized.split('x');
-      if (parts.length == 2) {
-        final times = int.tryParse(parts[0].trim()) ?? 1;
-        final dose = int.tryParse(parts[1].trim()) ?? 1;
-        return times * dose;
-      }
-    }
-
-    if (normalized.contains('haftada')) {
-      return 1;
-    }
-
-    return 1;
   }
 
   ({IconData icon, IconData? detailIcon, Color color}) _medicineVisual(
@@ -250,14 +198,12 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
                   );
                 }
 
-                // Extract all active drugs
-                final List<DrugItemEntity> allDrugs = [];
-                final List<_ScheduledDrugEntry> scheduleEntries = [];
+                final List<_ScheduledDrugEntry> stockEntries = [];
                 for (var p in activePrescriptions) {
-                  allDrugs.addAll(p.drugs);
                   for (final drug in p.drugs) {
-                    scheduleEntries.add(
+                    stockEntries.add(
                       _ScheduledDrugEntry(
+                        prescription: p,
                         drug: drug,
                         prescriptionDate: DateTime(
                           p.createdAt.year,
@@ -271,8 +217,8 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
 
                 return TabBarView(
                   children: [
-                    _buildWeeklySchedule(scheduleEntries),
-                    _buildStocks(allDrugs),
+                    _buildWeeklySchedule(stockEntries),
+                    _buildStocks(stockEntries),
                   ],
                 );
               }
@@ -318,8 +264,14 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
               !dayDate.isBefore(startDate) && !dayDate.isAfter(endDate);
 
           final totalStock =
-              _calculateDosesPerDay(drug.frequency) * drug.durationDays;
-          final takenCount = _takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
+              PrescriptionStatusHelper.calculateDosesPerDay(drug.frequency) *
+                  drug.durationDays;
+          final takenMap = PrescriptionStatusHelper.takenDoseCountsForPrescription(
+            _adherenceDocs,
+            entry.prescription,
+          );
+          final takenCount =
+              takenMap[PrescriptionStatusHelper.drugKey(drug)] ?? 0;
           final remaining = (totalStock - takenCount).clamp(0, totalStock);
           if (!isInTreatmentWindow) return false;
 
@@ -362,11 +314,21 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
               final drug = entry.drug;
               final visual = _medicineVisual(drug);
               final totalStock =
-                  _calculateDosesPerDay(drug.frequency) * drug.durationDays;
-              final takenCount = _takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
-              final todayTaken =
-                  _todayTakenDoseCountsByDrug[_drugKey(drug)] ?? 0;
-              final dailyLimit = _calculateDosesPerDay(drug.frequency);
+                  PrescriptionStatusHelper.calculateDosesPerDay(drug.frequency) *
+                      drug.durationDays;
+              final takenMap = PrescriptionStatusHelper.takenDoseCountsForPrescription(
+                _adherenceDocs,
+                entry.prescription,
+              );
+              final takenCount =
+                  takenMap[PrescriptionStatusHelper.drugKey(drug)] ?? 0;
+              final todayTaken = PrescriptionStatusHelper.todayTakenForDrug(
+                _adherenceDocs,
+                entry.prescription,
+                drug,
+              );
+              final dailyLimit =
+                  PrescriptionStatusHelper.calculateDosesPerDay(drug.frequency);
               final dailyLimitReached = todayTaken >= dailyLimit;
               final remaining = (totalStock - takenCount).clamp(0, totalStock);
               return ListTile(
@@ -418,7 +380,7 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
                     ? ElevatedButton(
                         onPressed: _isSavingTaken || dailyLimitReached
                             ? null
-                            : () => _markDrugAsTaken(drug),
+                            : () => _markDrugAsTaken(drug, entry.prescription),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.successContainer,
                           foregroundColor: AppColors.success,
@@ -526,19 +488,24 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
     );
   }
 
-  Widget _buildStocks(List<DrugItemEntity> drugs) {
+  Widget _buildStocks(List<_ScheduledDrugEntry> entries) {
     if (_isLoadingAdherence) {
       return const Center(child: CircularProgressIndicator());
     }
 
     return ListView.builder(
       padding: EdgeInsets.all(16.w),
-      itemCount: drugs.length,
+      itemCount: entries.length,
       itemBuilder: (context, index) {
-        final drug = drugs[index];
-        final dosesPerDay = _calculateDosesPerDay(drug.frequency);
+        final entry = entries[index];
+        final drug = entry.drug;
+        final dosesPerDay = PrescriptionStatusHelper.calculateDosesPerDay(drug.frequency);
         int totalStock = dosesPerDay * drug.durationDays;
-        final takenCount = _takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
+        final takenMap = PrescriptionStatusHelper.takenDoseCountsForPrescription(
+          _adherenceDocs,
+          entry.prescription,
+        );
+        final takenCount = takenMap[PrescriptionStatusHelper.drugKey(drug)] ?? 0;
         final remainingStock = (totalStock - takenCount).clamp(0, totalStock);
 
         return Card(
@@ -583,10 +550,12 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
 }
 
 class _ScheduledDrugEntry {
+  final PrescriptionEntity prescription;
   final DrugItemEntity drug;
   final DateTime prescriptionDate;
 
   const _ScheduledDrugEntry({
+    required this.prescription,
     required this.drug,
     required this.prescriptionDate,
   });

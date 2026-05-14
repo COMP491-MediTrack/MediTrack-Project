@@ -7,10 +7,10 @@ import 'package:meditrack/core/constants/app_constants.dart';
 import 'package:meditrack/core/di/injection.dart';
 import 'package:meditrack/core/router/route_names.dart';
 import 'package:meditrack/core/theme/app_colors.dart';
-import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
+import 'package:meditrack/features/prescription/presentation/utils/prescription_status_helper.dart';
 
 class PrescriptionListPage extends StatelessWidget {
   final String patientId;
@@ -79,15 +79,8 @@ class PrescriptionListPage extends StatelessWidget {
                     .where('patient_id', isEqualTo: patientId)
                     .snapshots(),
                 builder: (context, adherenceSnapshot) {
-                  final takenDoseCountsByDrug = <String, int>{};
-                  for (final doc in adherenceSnapshot.data?.docs ?? []) {
-                    final data = doc.data();
-                    final drugKey = data['drug_key'] as String?;
-                    final doseCount = (data['dose_count'] as num?)?.toInt() ?? 1;
-                    if (drugKey == null || drugKey.isEmpty) continue;
-                    takenDoseCountsByDrug[drugKey] =
-                        (takenDoseCountsByDrug[drugKey] ?? 0) + doseCount;
-                  }
+                  final adherenceDocs =
+                      adherenceSnapshot.data?.docs ?? const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
 
                   return ListView.separated(
                     padding: EdgeInsets.all(16.w),
@@ -95,9 +88,10 @@ class PrescriptionListPage extends StatelessWidget {
                     separatorBuilder: (_, __) => SizedBox(height: 12.h),
                     itemBuilder: (_, index) {
                       final prescription = state.prescriptions[index];
-                      final isCurrentlyActive = _isPrescriptionCurrentlyActive(
+                      final isCurrentlyActive =
+                          PrescriptionStatusHelper.isPrescriptionCurrentlyActive(
                         prescription,
-                        takenDoseCountsByDrug,
+                        adherenceDocs,
                       );
                       return _buildPrescriptionCard(
                         context,
@@ -201,53 +195,5 @@ class PrescriptionListPage extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year}';
-  }
-
-  bool _isPrescriptionCurrentlyActive(
-    PrescriptionEntity prescription,
-    Map<String, int> takenDoseCountsByDrug,
-  ) {
-    if (!prescription.isActive || prescription.drugs.isEmpty) return false;
-
-    for (final drug in prescription.drugs) {
-      final totalStock = _calculateDosesPerDay(drug.frequency) * drug.durationDays;
-      if (totalStock <= 0) continue;
-      final takenCount = takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
-      final remaining = (totalStock - takenCount).clamp(0, totalStock);
-      if (remaining > 0) return true;
-    }
-    return false;
-  }
-
-  String _drugKey(DrugItemEntity drug) {
-    if (drug.barcode.isNotEmpty) {
-      return drug.barcode;
-    }
-    return '${drug.brandName}_${drug.frequency}_${drug.durationDays}'
-        .toLowerCase();
-  }
-
-  int _calculateDosesPerDay(String frequency) {
-    final normalized = frequency.toLowerCase();
-
-    final turkishDailyMatch = RegExp(r'günde\s*(\d+)').firstMatch(normalized);
-    if (turkishDailyMatch != null) {
-      return int.tryParse(turkishDailyMatch.group(1) ?? '') ?? 1;
-    }
-
-    if (normalized.contains('x')) {
-      final parts = normalized.split('x');
-      if (parts.length == 2) {
-        final times = int.tryParse(parts[0].trim()) ?? 1;
-        final dose = int.tryParse(parts[1].trim()) ?? 1;
-        return times * dose;
-      }
-    }
-
-    if (normalized.contains('haftada')) {
-      return 1;
-    }
-
-    return 1;
   }
 }
