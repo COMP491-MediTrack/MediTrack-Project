@@ -87,6 +87,8 @@ import 'package:meditrack/features/prescription/domain/usecases/get_patient_pres
     as _i872;
 import 'package:meditrack/features/prescription/domain/usecases/search_drugs_usecase.dart'
     as _i92;
+import 'package:meditrack/features/prescription/domain/usecases/explain_ddi_usecase.dart'
+    as _i99;
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart'
     as _i840;
 
@@ -152,6 +154,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i92.SearchDrugsUseCase(gh<_i202.PrescriptionRepository>()));
     gh.lazySingleton<_i23.CheckDdiUseCase>(
         () => _i23.CheckDdiUseCase(gh<_i202.PrescriptionRepository>()));
+    gh.lazySingleton<_i99.ExplainDdiUseCase>(
+        () => _i99.ExplainDdiUseCase(gh<_i202.PrescriptionRepository>()));
     gh.lazySingleton<_i118.CreatePrescriptionUseCase>(() =>
         _i118.CreatePrescriptionUseCase(gh<_i202.PrescriptionRepository>()));
     gh.lazySingleton<_i920.GetDoctorPrescriptionsUseCase>(() =>
@@ -197,6 +201,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i840.PrescriptionCubit>(() => _i840.PrescriptionCubit(
           gh<_i92.SearchDrugsUseCase>(),
           gh<_i23.CheckDdiUseCase>(),
+          gh<_i99.ExplainDdiUseCase>(),
           gh<_i118.CreatePrescriptionUseCase>(),
           gh<_i872.GetPatientPrescriptionsUseCase>(),
           gh<_i920.GetDoctorPrescriptionsUseCase>(),

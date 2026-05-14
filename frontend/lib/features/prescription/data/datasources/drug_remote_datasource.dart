@@ -7,6 +7,7 @@ import 'package:meditrack/features/prescription/data/models/drug_search_result_m
 abstract class DrugRemoteDataSource {
   Future<List<DrugSearchResultModel>> searchDrugs(String name);
   Future<DdiResultModel> checkDdi(List<String> genericNames);
+  Future<String> explainDdi(String drug1, String drug2, String description);
 }
 
 @LazySingleton(as: DrugRemoteDataSource)
@@ -34,5 +35,18 @@ class DrugRemoteDataSourceImpl implements DrugRemoteDataSource {
       data: {'drugs': genericNames},
     );
     return DdiResultModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  @override
+  Future<String> explainDdi(String drug1, String drug2, String description) async {
+    final response = await _dio.post(
+      '${AppConstants.apiBaseUrl}/ddi/explain',
+      data: {
+        'active_ingredient_1': drug1,
+        'active_ingredient_2': drug2,
+        'description': description,
+      },
+    );
+    return response.data['explanation'] as String;
   }
 }

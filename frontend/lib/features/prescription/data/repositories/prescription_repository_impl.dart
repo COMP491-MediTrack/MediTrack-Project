@@ -43,6 +43,18 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
   }
 
   @override
+  Future<Either<Failure, String>> explainDdi(String drug1, String drug2, String description) async {
+    try {
+      final explanation = await _drugDataSource.explainDdi(drug1, drug2, description);
+      return Right(explanation);
+    } on DioException catch (e) {
+      return Left(ServerFailure(e.message ?? 'AI açıklaması alınamadı.'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, PrescriptionEntity>> createPrescription({
     required String patientId,
     required String patientName,

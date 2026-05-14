@@ -6,12 +6,14 @@ import 'package:meditrack/features/prescription/domain/usecases/create_prescript
 import 'package:meditrack/features/prescription/domain/usecases/get_doctor_prescriptions_usecase.dart';
 import 'package:meditrack/features/prescription/domain/usecases/get_patient_prescriptions_usecase.dart';
 import 'package:meditrack/features/prescription/domain/usecases/search_drugs_usecase.dart';
+import 'package:meditrack/features/prescription/domain/usecases/explain_ddi_usecase.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
 
 @injectable
 class PrescriptionCubit extends Cubit<PrescriptionState> {
   final SearchDrugsUseCase _searchDrugs;
   final CheckDdiUseCase _checkDdi;
+  final ExplainDdiUseCase _explainDdi;
   final CreatePrescriptionUseCase _createPrescription;
   final GetPatientPrescriptionsUseCase _getPatientPrescriptions;
   final GetDoctorPrescriptionsUseCase _getDoctorPrescriptions;
@@ -19,6 +21,7 @@ class PrescriptionCubit extends Cubit<PrescriptionState> {
   PrescriptionCubit(
     this._searchDrugs,
     this._checkDdi,
+    this._explainDdi,
     this._createPrescription,
     this._getPatientPrescriptions,
     this._getDoctorPrescriptions,
@@ -39,6 +42,19 @@ class PrescriptionCubit extends Cubit<PrescriptionState> {
     result.fold(
       (failure) => emit(PrescriptionError(failure.message)),
       (ddiResult) => emit(DdiLoaded(ddiResult)),
+    );
+  }
+
+  Future<void> explainDdi(int index, String drug1, String drug2, String description) async {
+    emit(DdiExplaining(index));
+    final result = await _explainDdi(
+      drug1: drug1,
+      drug2: drug2,
+      description: description,
+    );
+    result.fold(
+      (failure) => emit(PrescriptionError(failure.message)),
+      (explanation) => emit(DdiExplanationLoaded(index, explanation)),
     );
   }
 

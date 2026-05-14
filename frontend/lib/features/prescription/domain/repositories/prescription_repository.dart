@@ -9,6 +9,7 @@ abstract class PrescriptionRepository {
   Future<Either<Failure, List<DrugSearchResultEntity>>> searchDrugs(String name);
 
   Future<Either<Failure, DdiResultEntity>> checkDdi(List<String> genericNames);
+  Future<Either<Failure, String>> explainDdi(String drug1, String drug2, String description);
 
   Future<Either<Failure, PrescriptionEntity>> createPrescription({
     required String patientId,
