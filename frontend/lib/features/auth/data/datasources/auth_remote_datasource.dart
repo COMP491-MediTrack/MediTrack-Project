@@ -17,6 +17,12 @@ abstract class AuthRemoteDataSource {
   Future<UserModel?> getCurrentUser();
   Future<void> logout();
   Future<void> updateName(String uid, String newName);
+  Future<void> updateStreak(
+    String uid, {
+    required int currentStreak,
+    required int longestStreak,
+    required DateTime? lastStreakDate,
+  });
 }
 
 @LazySingleton(as: AuthRemoteDataSource)
@@ -104,5 +110,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         .collection(AppConstants.usersCollection)
         .doc(uid)
         .update({'name': newName});
+  }
+
+  @override
+  Future<void> updateStreak(
+    String uid, {
+    required int currentStreak,
+    required int longestStreak,
+    required DateTime? lastStreakDate,
+  }) async {
+    await _firestore
+        .collection(AppConstants.usersCollection)
+        .doc(uid)
+        .update({
+      'currentStreak': currentStreak,
+      'longestStreak': longestStreak,
+      'lastStreakDate':
+          lastStreakDate != null ? Timestamp.fromDate(lastStreakDate) : null,
+    });
   }
 }

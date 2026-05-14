@@ -19,6 +19,8 @@ import 'package:meditrack/features/dashboard/presentation/cubit/weather_state.da
 import 'package:meditrack/features/dashboard/data/models/weather_model.dart';
 import 'package:meditrack/features/dashboard/data/datasources/weather_remote_datasource.dart';
 import 'package:dio/dio.dart';
+import 'package:meditrack/features/dashboard/presentation/cubit/streak_cubit.dart';
+import 'package:meditrack/features/dashboard/presentation/cubit/streak_state.dart';
 
 class PatientDashboardPage extends StatelessWidget {
   const PatientDashboardPage({super.key});
@@ -49,6 +51,7 @@ class PatientDashboardPage extends StatelessWidget {
             create: (_) =>
                 WeatherCubit(WeatherRemoteDataSourceImpl(getIt<Dio>()))
                   ..fetchWeather()),
+        BlocProvider(create: (_) => getIt<StreakCubit>()),
       ],
       child: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
@@ -63,7 +66,18 @@ class PatientDashboardPage extends StatelessWidget {
             );
           }
         },
-        child: BlocBuilder<AuthCubit, AuthState>(
+        child: BlocListener<PrescriptionCubit, PrescriptionState>(
+          listener: (context, prescriptionState) {
+            final authState = context.read<AuthCubit>().state;
+            if (authState is AuthAuthenticated &&
+                prescriptionState is PrescriptionListLoaded) {
+              context.read<StreakCubit>().checkAndUpdateStreak(
+                    authState.user,
+                    prescriptionState.prescriptions,
+                  );
+            }
+          },
+          child: BlocBuilder<AuthCubit, AuthState>(
           builder: (context, authState) {
             final user = authState is AuthAuthenticated ? authState.user : null;
             return Scaffold(
@@ -76,6 +90,8 @@ class PatientDashboardPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildWelcomeCard(context, user),
+                      SizedBox(height: 16.h),
+                      _buildStreakCard(context),
                       SizedBox(height: 16.h),
                       _buildDoctorCard(context),
                       SizedBox(height: 16.h),
@@ -96,8 +112,9 @@ class PatientDashboardPage extends StatelessWidget {
           },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPharmacyActionCard(BuildContext context) {
     return GestureDetector(
@@ -144,7 +161,19 @@ class PatientDashboardPage extends StatelessWidget {
   Widget _buildScheduleActionCard(BuildContext context, UserEntity? user) {
     if (user == null) return const SizedBox.shrink();
     return GestureDetector(
-      onTap: () => context.push(RouteNames.medicineSchedule, extra: user.uid),
+      onTap: () async {
+        await context.push(RouteNames.medicineSchedule, extra: user.uid);
+        // Refresh streak when returning
+        if (context.mounted) {
+          final pState = context.read<PrescriptionCubit>().state;
+          if (pState is PrescriptionListLoaded) {
+            context.read<StreakCubit>().checkAndUpdateStreak(
+                  user,
+                  pState.prescriptions,
+                );
+          }
+        }
+      },
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.all(16.w),
@@ -725,4 +754,148 @@ class PatientDashboardPage extends StatelessWidget {
     return '${now.day} ${months[now.month - 1]} ${now.year}';
   }
 
+  Widget _buildStreakCard(BuildContext context) {
+    return BlocBuilder<StreakCubit, StreakState>(
+      builder: (context, state) {
+        if (state is StreakLoading && state is! StreakLoaded) {
+          return const SizedBox.shrink();
+        }
+
+        int currentStreak = 0;
+        bool isPerfectToday = false;
+
+        final authState = context.read<AuthCubit>().state;
+        final isPatient = authState is AuthAuthenticated && authState.user.isPatient;
+
+        if (!isPatient) {
+          return const SizedBox.shrink();
+        }
+
+        if (state is StreakLoaded) {
+          currentStreak = state.currentStreak;
+          isPerfectToday = state.isPerfectToday;
+        } else if (authState is AuthAuthenticated) {
+          currentStreak = authState.user.currentStreak;
+        }
+
+        // Always show the card for patients to encourage them
+
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.orange[400]!,
+                Colors.deepOrange[600]!,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.orange.withAlpha(76),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(51),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Colors.white,
+                  size: 32.sp,
+                ),
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$currentStreak Günlük Seri!',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      isPerfectToday
+                          ? 'Harika! Bugün tüm ilaçlarınızı aldınız.'
+                          : 'Serini bozma! Bugün alman gereken ilaçlar var.',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: Colors.white.withAlpha(230),
+                      ),
+                    ),
+                    if (!isPerfectToday && authState is AuthAuthenticated) ...[
+                      SizedBox(height: 12.h),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await context.push(
+                            RouteNames.medicineSchedule,
+                            extra: authState.user.uid,
+                          );
+                          // Refresh streak when returning
+                          if (context.mounted) {
+                            final pState = context.read<PrescriptionCubit>().state;
+                            if (pState is PrescriptionListLoaded) {
+                              context.read<StreakCubit>().checkAndUpdateStreak(
+                                    authState.user,
+                                    pState.prescriptions,
+                                  );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.orange[700],
+                          elevation: 0,
+                          minimumSize: Size(double.infinity, 36.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                        ),
+                        icon: Icon(Icons.calendar_today_rounded, size: 16.sp),
+                        label: Text(
+                          'İlaçlarımı Gör',
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (isPerfectToday)
+                Container(
+                  padding: EdgeInsets.all(4.w),
+                  decoration: const BoxDecoration(
+                    color: Colors.white24,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.white,
+                    size: 24.sp,
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

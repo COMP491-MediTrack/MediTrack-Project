@@ -9,6 +9,10 @@ import 'package:meditrack/features/prescription/domain/entities/drug_item_entity
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
+import 'package:meditrack/features/dashboard/presentation/cubit/streak_cubit.dart';
+import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
+import 'package:meditrack/features/auth/domain/entities/user_entity.dart';
 
 class MedicineSchedulePage extends StatefulWidget {
   final String patientId;
@@ -126,6 +130,17 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
         ),
       );
       await _checkPrescriptionCompletion(drug);
+      
+      // Trigger streak check
+      if (mounted) {
+        final authState = context.read<AuthCubit>().state;
+        if (authState is AuthAuthenticated) {
+          context.read<StreakCubit>().checkAndUpdateStreak(
+            authState.user,
+            _activePrescriptions,
+          );
+        }
+      }
     } on FirebaseException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -253,9 +268,14 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          getIt<PrescriptionCubit>()..watchPatientPrescriptions(widget.patientId),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => getIt<PrescriptionCubit>()
+            ..watchPatientPrescriptions(widget.patientId),
+        ),
+        BlocProvider(create: (_) => getIt<StreakCubit>()),
+      ],
       child: DefaultTabController(
         length: 2,
         child: Scaffold(

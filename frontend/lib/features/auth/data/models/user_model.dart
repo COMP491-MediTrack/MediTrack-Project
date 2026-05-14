@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:meditrack/features/auth/domain/entities/user_entity.dart';
 
 class UserModel extends UserEntity {
@@ -7,6 +8,9 @@ class UserModel extends UserEntity {
     required super.name,
     required super.role,
     super.doctorId,
+    super.currentStreak,
+    super.longestStreak,
+    super.lastStreakDate,
   });
 
   factory UserModel.fromFirestore(Map<String, dynamic> map, String uid) {
@@ -16,6 +20,11 @@ class UserModel extends UserEntity {
       name: map['name'] as String,
       role: map['role'] as String,
       doctorId: map['doctorId'] as String?,
+      currentStreak: (map['currentStreak'] as num?)?.toInt() ?? 0,
+      longestStreak: (map['longestStreak'] as num?)?.toInt() ?? 0,
+      lastStreakDate: map['lastStreakDate'] != null
+          ? (map['lastStreakDate'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -25,6 +34,10 @@ class UserModel extends UserEntity {
       'name': name,
       'role': role,
       if (doctorId != null) 'doctorId': doctorId,
+      'currentStreak': currentStreak,
+      'longestStreak': longestStreak,
+      'lastStreakDate':
+          lastStreakDate != null ? Timestamp.fromDate(lastStreakDate!) : null,
     };
   }
 }

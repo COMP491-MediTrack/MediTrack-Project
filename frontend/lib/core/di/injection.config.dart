@@ -36,6 +36,8 @@ import 'package:meditrack/features/dashboard/data/datasources/weather_remote_dat
     as _i312;
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_cubit.dart'
     as _i172;
+import 'package:meditrack/features/dashboard/presentation/cubit/streak_cubit.dart'
+    as _i700;
 import 'package:meditrack/features/dashboard/presentation/cubit/weather_cubit.dart'
     as _i957;
 import 'package:meditrack/features/lab_results/data/datasources/lab_result_remote_datasource.dart'
@@ -186,6 +188,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i8.GetCurrentUserUseCase>(),
         gh<_i468.LogoutUseCase>(),
         gh<_i1038.AuthRepository>(),
+      ),
+    );
+    gh.factory<_i700.StreakCubit>(
+      () => _i700.StreakCubit(
+        gh<_i1038.AuthRepository>(),
+        gh<_i974.FirebaseFirestore>(),
       ),
     );
     gh.lazySingleton<_i1061.PharmacyRepository>(

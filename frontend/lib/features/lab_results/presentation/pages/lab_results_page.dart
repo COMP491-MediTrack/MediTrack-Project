@@ -56,12 +56,14 @@ class _LabResultsPageState extends State<LabResultsPage> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider.value(value: getIt<AuthCubit>()),
-        BlocProvider.value(value: _labResultCubit),
-        BlocProvider.value(value: _testRequestCubit),
+        BlocProvider(create: (_) => _labResultCubit),
+        BlocProvider(create: (_) => _testRequestCubit),
       ],
-      child: BlocBuilder<AuthCubit, AuthState>(
-          builder: (context, authState) {
+      child: BlocListener<AuthCubit, AuthState>(
+        listener: (context, authState) {},
+        child: Builder(
+          builder: (context) {
+            final authState = context.watch<AuthCubit>().state;
             final resolvedPatientId = patientId ??
                 (authState is AuthAuthenticated ? authState.user.uid : null);
 
@@ -100,6 +102,7 @@ class _LabResultsPageState extends State<LabResultsPage> {
             );
           },
         ),
+      ),
     );
   }
 

@@ -92,4 +92,24 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> updateStreak(
+    String uid, {
+    required int currentStreak,
+    required int longestStreak,
+    required DateTime? lastStreakDate,
+  }) async {
+    try {
+      await _dataSource.updateStreak(
+        uid,
+        currentStreak: currentStreak,
+        longestStreak: longestStreak,
+        lastStreakDate: lastStreakDate,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

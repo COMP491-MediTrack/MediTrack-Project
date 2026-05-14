@@ -22,4 +22,10 @@ abstract class AuthRepository {
 
   Future<Either<Failure, void>> logout();
   Future<Either<Failure, void>> updateName(String uid, String newName);
+  Future<Either<Failure, void>> updateStreak(
+    String uid, {
+    required int currentStreak,
+    required int longestStreak,
+    required DateTime? lastStreakDate,
+  });
 }
