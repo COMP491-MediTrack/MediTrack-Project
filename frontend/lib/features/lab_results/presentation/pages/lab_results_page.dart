@@ -14,7 +14,7 @@ import 'package:meditrack/features/lab_results/presentation/cubit/test_request_c
 import 'package:meditrack/features/lab_results/presentation/cubit/test_request_state.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class LabResultsPage extends StatelessWidget {
+class LabResultsPage extends StatefulWidget {
   final String? patientId;
   final String? patientName;
   final bool isDoctor;
@@ -27,22 +27,40 @@ class LabResultsPage extends StatelessWidget {
   });
 
   @override
+  State<LabResultsPage> createState() => _LabResultsPageState();
+}
+
+class _LabResultsPageState extends State<LabResultsPage> {
+  late final LabResultCubit _labResultCubit;
+  late final TestRequestCubit _testRequestCubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _labResultCubit = getIt<LabResultCubit>();
+    _testRequestCubit = getIt<TestRequestCubit>();
+
+    final authState = getIt<AuthCubit>().state;
+    if (authState is AuthAuthenticated) {
+      final id = widget.patientId ?? authState.user.uid;
+      _labResultCubit.loadLabResults(id);
+      _testRequestCubit.loadTestRequests(id);
+    }
+  }
+
+  bool get isDoctor => widget.isDoctor;
+  String? get patientId => widget.patientId;
+  String? get patientName => widget.patientName;
+
+  @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => getIt<AuthCubit>()..checkAuthStatus()),
-        BlocProvider(create: (_) => getIt<LabResultCubit>()),
-        BlocProvider(create: (_) => getIt<TestRequestCubit>()),
+        BlocProvider.value(value: getIt<AuthCubit>()),
+        BlocProvider.value(value: _labResultCubit),
+        BlocProvider.value(value: _testRequestCubit),
       ],
-      child: BlocListener<AuthCubit, AuthState>(
-        listener: (context, authState) {
-          if (authState is AuthAuthenticated) {
-            final id = patientId ?? authState.user.uid;
-            context.read<LabResultCubit>().loadLabResults(id);
-            context.read<TestRequestCubit>().loadTestRequests(id);
-          }
-        },
-        child: BlocBuilder<AuthCubit, AuthState>(
+      child: BlocBuilder<AuthCubit, AuthState>(
           builder: (context, authState) {
             final resolvedPatientId = patientId ??
                 (authState is AuthAuthenticated ? authState.user.uid : null);
@@ -82,7 +100,6 @@ class LabResultsPage extends StatelessWidget {
             );
           },
         ),
-      ),
     );
   }
 
