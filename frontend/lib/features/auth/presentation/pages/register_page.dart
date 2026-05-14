@@ -1,4 +1,37 @@
-stFrameCallback((_) {
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
+import 'package:meditrack/core/constants/app_constants.dart';
+import 'package:meditrack/core/di/injection.dart';
+import 'package:meditrack/core/router/route_names.dart';
+import 'package:meditrack/core/theme/app_colors.dart';
+import 'package:meditrack/features/auth/domain/entities/user_entity.dart';
+import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
+ 
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
+ 
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+ 
+class _RegisterPageState extends State<RegisterPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+ 
+  bool _obscurePassword = true;
+  String _selectedRole = AppConstants.rolePatient;
+  String? _selectedDoctorId;
+  List<UserEntity> _doctors = [];
+ 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthCubit>().loadDoctors();
     });
   }
@@ -344,3 +377,6 @@ stFrameCallback((_) {
     );
   }
 }
+ 
+
+
