@@ -16,9 +16,12 @@ abstract class PrescriptionRepository {
     required String patientName,
     required String doctorName,
     required List<DrugItemEntity> drugs,
+    List<DdiInteractionEntity> interactions,
   });
 
   Future<Either<Failure, List<PrescriptionEntity>>> getPatientPrescriptions(String patientId);
 
   Future<Either<Failure, List<PrescriptionEntity>>> getDoctorPrescriptions(String doctorId);
+
+  Stream<List<PrescriptionEntity>> watchPatientPrescriptions(String patientId);
 }

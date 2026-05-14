@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:injectable/injectable.dart';
 import 'package:meditrack/core/errors/failures.dart';
+import 'package:meditrack/features/prescription/domain/entities/ddi_result_entity.dart';
 import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
 import 'package:meditrack/features/prescription/domain/repositories/prescription_repository.dart';
@@ -16,12 +17,14 @@ class CreatePrescriptionUseCase {
     required String patientName,
     required String doctorName,
     required List<DrugItemEntity> drugs,
+    List<DdiInteractionEntity> interactions = const [],
   }) {
     return _repository.createPrescription(
       patientId: patientId,
       patientName: patientName,
       doctorName: doctorName,
       drugs: drugs,
+      interactions: interactions,
     );
   }
 }

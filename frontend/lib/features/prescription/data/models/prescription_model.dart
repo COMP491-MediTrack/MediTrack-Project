@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:meditrack/features/prescription/data/models/ddi_result_model.dart';
 import 'package:meditrack/features/prescription/data/models/drug_item_model.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
 
@@ -12,9 +13,11 @@ class PrescriptionModel extends PrescriptionEntity {
     required super.drugs,
     required super.status,
     required super.createdAt,
+    super.interactions = const [],
   });
 
   factory PrescriptionModel.fromFirestore(Map<String, dynamic> json, String id) {
+    final rawInteractions = json['interactions'] as List<dynamic>?;
     return PrescriptionModel(
       id: id,
       doctorId: json['doctor_id'] as String,
@@ -26,6 +29,10 @@ class PrescriptionModel extends PrescriptionEntity {
           .toList(),
       status: json['status'] as String,
       createdAt: (json['created_at'] as Timestamp).toDate(),
+      interactions: rawInteractions
+              ?.map((i) => DdiInteractionModel.fromJson(i as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
   }
 
@@ -48,6 +55,14 @@ class PrescriptionModel extends PrescriptionEntity {
           .toList(),
       'status': status,
       'created_at': Timestamp.fromDate(createdAt),
+      'interactions': interactions
+          .map((i) => {
+                'drug1': i.drug1,
+                'drug2': i.drug2,
+                'description': i.description,
+                if (i.aiExplanation != null) 'ai_explanation': i.aiExplanation,
+              })
+          .toList(),
     };
   }
 }

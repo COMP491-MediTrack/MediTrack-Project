@@ -60,6 +60,7 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
     required String patientName,
     required String doctorName,
     required List<DrugItemEntity> drugs,
+    List<DdiInteractionEntity> interactions = const [],
   }) async {
     try {
       final prescription = await _prescriptionDataSource.createPrescription(
@@ -67,6 +68,7 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
         patientName: patientName,
         doctorName: doctorName,
         drugs: drugs,
+        interactions: interactions,
       );
       return Right(prescription);
     } catch (e) {
@@ -92,5 +94,10 @@ class PrescriptionRepositoryImpl implements PrescriptionRepository {
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
+  }
+
+  @override
+  Stream<List<PrescriptionEntity>> watchPatientPrescriptions(String patientId) {
+    return _prescriptionDataSource.watchPatientPrescriptions(patientId);
   }
 }

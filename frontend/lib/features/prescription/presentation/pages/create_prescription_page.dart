@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:meditrack/core/di/injection.dart';
 import 'package:meditrack/core/theme/app_colors.dart';
 import 'package:meditrack/features/auth/domain/entities/user_entity.dart';
+import 'package:meditrack/features/prescription/domain/entities/ddi_result_entity.dart';
 import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
@@ -13,11 +14,13 @@ import 'package:meditrack/features/prescription/presentation/widgets/drug_search
 class CreatePrescriptionPage extends StatefulWidget {
   final UserEntity patient;
   final String doctorName;
+  final PrescriptionCubit? sharedCubit;
 
   const CreatePrescriptionPage({
     super.key,
     required this.patient,
     required this.doctorName,
+    this.sharedCubit,
   });
 
   @override
@@ -52,24 +55,26 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
     }
   }
 
-  void _savePrescription(BuildContext context) {
+  void _savePrescription(BuildContext context, {List<DdiInteractionEntity> interactions = const []}) {
     context.read<PrescriptionCubit>().createPrescription(
           patientId: widget.patient.uid,
           patientName: widget.patient.name,
           doctorName: widget.doctorName,
           drugs: _selectedDrugs,
+          interactions: interactions,
         );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<PrescriptionCubit>(),
-      child: BlocConsumer<PrescriptionCubit, PrescriptionState>(
+  Widget _buildContent(BuildContext context) {
+    return BlocConsumer<PrescriptionCubit, PrescriptionState>(
         listener: (context, state) {
           if (state is DdiLoaded) {
             if (state.result.hasInteractions) {
-              _showDdiWarningDialog(context, state, () => _savePrescription(context));
+              _showDdiWarningDialog(
+                context,
+                state,
+                (enrichedInteractions) => _savePrescription(context, interactions: enrichedInteractions),
+              );
             } else {
               _savePrescription(context);
             }
@@ -124,7 +129,20 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
             ),
           );
         },
-      ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.sharedCubit != null) {
+      return BlocProvider.value(
+        value: widget.sharedCubit!,
+        child: _buildContent(context),
+      );
+    }
+    return BlocProvider(
+      create: (_) => getIt<PrescriptionCubit>(),
+      child: _buildContent(context),
     );
   }
 
@@ -270,7 +288,7 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
   void _showDdiWarningDialog(
     BuildContext context,
     DdiLoaded state,
-    VoidCallback onConfirm,
+    void Function(List<DdiInteractionEntity> interactions) onConfirm,
   ) {
     final cubit = context.read<PrescriptionCubit>();
     final explanations = <int, String>{};
@@ -424,7 +442,17 @@ class _CreatePrescriptionPageState extends State<CreatePrescriptionPage> {
                 FilledButton(
                   onPressed: () {
                     Navigator.pop(dialogContext);
-                    onConfirm();
+                    final enriched = state.result.interactions
+                        .asMap()
+                        .entries
+                        .map((e) => DdiInteractionEntity(
+                              drug1: e.value.drug1,
+                              drug2: e.value.drug2,
+                              description: e.value.description,
+                              aiExplanation: explanations[e.key],
+                            ))
+                        .toList();
+                    onConfirm(enriched);
                   },
                   style: FilledButton.styleFrom(backgroundColor: AppColors.warning),
                   child: const Text('Yine de Kaydet'),
