@@ -12,7 +12,6 @@ import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/dashboard_state.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
-import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
 import 'package:meditrack/features/dashboard/presentation/cubit/weather_cubit.dart';
@@ -20,8 +19,6 @@ import 'package:meditrack/features/dashboard/presentation/cubit/weather_state.da
 import 'package:meditrack/features/dashboard/data/models/weather_model.dart';
 import 'package:meditrack/features/dashboard/data/datasources/weather_remote_datasource.dart';
 import 'package:dio/dio.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:meditrack/core/constants/app_constants.dart';
 
 class PatientDashboardPage extends StatelessWidget {
   const PatientDashboardPage({super.key});
@@ -44,7 +41,7 @@ class PatientDashboardPage extends StatelessWidget {
           final cubit = getIt<PrescriptionCubit>();
           final authState = context.read<AuthCubit>().state;
           if (authState is AuthAuthenticated) {
-            cubit.loadPatientPrescriptions(authState.user.uid);
+            cubit.watchPatientPrescriptions(authState.user.uid);
           }
           return cubit;
         }),
@@ -61,7 +58,7 @@ class PatientDashboardPage extends StatelessWidget {
             if (state.user.doctorId != null) {
               context.read<DashboardCubit>().loadDoctor(state.user.doctorId!);
             }
-            context.read<PrescriptionCubit>().loadPatientPrescriptions(
+            context.read<PrescriptionCubit>().watchPatientPrescriptions(
               state.user.uid,
             );
           }
@@ -603,39 +600,10 @@ class PatientDashboardPage extends StatelessWidget {
                   if (active.isEmpty || user == null) {
                     return _emptyPrescriptions();
                   }
-
-                  return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: getIt<FirebaseFirestore>()
-                        .collection(AppConstants.adherenceCollection)
-                        .where('patient_id', isEqualTo: user.uid)
-                        .snapshots(),
-                    builder: (context, adherenceSnapshot) {
-                      final takenDoseCountsByDrug = <String, int>{};
-                      for (final doc in adherenceSnapshot.data?.docs ?? []) {
-                        final data = doc.data();
-                        final drugKey = data['drug_key'] as String?;
-                        final doseCount = (data['dose_count'] as num?)?.toInt() ?? 1;
-                        if (drugKey == null || drugKey.isEmpty) continue;
-                        takenDoseCountsByDrug[drugKey] =
-                            (takenDoseCountsByDrug[drugKey] ?? 0) + doseCount;
-                      }
-
-                      return Column(
-                        children: active
-                            .take(2)
-                            .map(
-                              (p) => _buildPrescriptionCard(
-                                context,
-                                p,
-                                isCurrentlyActive: _isPrescriptionCurrentlyActive(
-                                  p,
-                                  takenDoseCountsByDrug,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      );
-                    },
+                  return Column(
+                    children: active
+                        .map((p) => _buildPrescriptionCard(context, p))
+                        .toList(),
                   );
                 }
                 return _emptyPrescriptions();
@@ -673,19 +641,7 @@ class PatientDashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPrescriptionCard(
-    BuildContext context,
-    PrescriptionEntity p, {
-    required bool isCurrentlyActive,
-  }) {
-    final statusLabel = isCurrentlyActive ? 'Aktif' : 'İnaktif';
-    final chipBackgroundColor = isCurrentlyActive
-        ? AppColors.primaryContainer
-        : AppColors.errorContainer;
-    final chipTextColor = isCurrentlyActive
-        ? AppColors.primaryDark
-        : AppColors.error;
-
+  Widget _buildPrescriptionCard(BuildContext context, PrescriptionEntity p) {
     return GestureDetector(
       onTap: () => context.push(RouteNames.prescriptionDetail, extra: p),
       child: Container(
@@ -705,27 +661,24 @@ class PatientDashboardPage extends StatelessWidget {
               children: [
                 Text(
                   'Dr. ${p.doctorName}',
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
                 ),
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color: chipBackgroundColor,
+                    color: p.isActive ? AppColors.primaryContainer : AppColors.errorContainer,
                     borderRadius: BorderRadius.circular(6.r),
                     border: Border.all(
-                      color: isCurrentlyActive
+                      color: p.isActive
                           ? AppColors.primary.withAlpha(77)
                           : AppColors.error.withAlpha(77),
                     ),
                   ),
                   child: Text(
-                    statusLabel,
+                    p.isActive ? 'Aktif' : 'Tamamlandı',
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: chipTextColor,
+                      color: p.isActive ? AppColors.primaryDark : AppColors.error,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -733,9 +686,14 @@ class PatientDashboardPage extends StatelessWidget {
               ],
             ),
             SizedBox(height: 6.h),
-            Text(
-              '${p.drugs.length} ilaç',
-              style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
+            ...p.drugs.map(
+              (drug) => Padding(
+                padding: EdgeInsets.only(bottom: 2.h),
+                child: Text(
+                  '• ${drug.brandName}',
+                  style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
+                ),
+              ),
             ),
             SizedBox(height: 4.h),
             Text(
@@ -767,54 +725,4 @@ class PatientDashboardPage extends StatelessWidget {
     return '${now.day} ${months[now.month - 1]} ${now.year}';
   }
 
-  bool _isPrescriptionCurrentlyActive(
-    PrescriptionEntity prescription,
-    Map<String, int> takenDoseCountsByDrug,
-  ) {
-    if (!prescription.isActive) return false;
-    if (prescription.drugs.isEmpty) return false;
-
-    for (final drug in prescription.drugs) {
-      final totalStock = _calculateDosesPerDay(drug.frequency) * drug.durationDays;
-      if (totalStock <= 0) continue;
-      final takenCount = takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
-      final remaining = (totalStock - takenCount).clamp(0, totalStock);
-      if (remaining > 0) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  String _drugKey(DrugItemEntity drug) {
-    if (drug.barcode.isNotEmpty) {
-      return drug.barcode;
-    }
-    return '${drug.brandName}_${drug.frequency}_${drug.durationDays}'.toLowerCase();
-  }
-
-  int _calculateDosesPerDay(String frequency) {
-    final normalized = frequency.toLowerCase();
-
-    final turkishDailyMatch = RegExp(r'günde\s*(\d+)').firstMatch(normalized);
-    if (turkishDailyMatch != null) {
-      return int.tryParse(turkishDailyMatch.group(1) ?? '') ?? 1;
-    }
-
-    if (normalized.contains('x')) {
-      final parts = normalized.split('x');
-      if (parts.length == 2) {
-        final times = int.tryParse(parts[0].trim()) ?? 1;
-        final dose = int.tryParse(parts[1].trim()) ?? 1;
-        return times * dose;
-      }
-    }
-
-    if (normalized.contains('haftada')) {
-      return 1;
-    }
-
-    return 1;
-  }
 }

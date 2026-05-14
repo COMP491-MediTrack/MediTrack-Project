@@ -6,6 +6,7 @@ import 'package:meditrack/core/constants/app_constants.dart';
 import 'package:meditrack/core/di/injection.dart';
 import 'package:meditrack/core/theme/app_colors.dart';
 import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
+import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
 
@@ -24,6 +25,7 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
   bool _isLoadingAdherence = true;
   Map<String, int> _takenDoseCountsByDrug = {};
   Map<String, int> _todayTakenDoseCountsByDrug = {};
+  List<PrescriptionEntity> _activePrescriptions = [];
 
   @override
   void initState() {
@@ -123,6 +125,7 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
           backgroundColor: AppColors.success,
         ),
       );
+      await _checkPrescriptionCompletion(drug);
     } on FirebaseException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -143,6 +146,36 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
       if (mounted) {
         setState(() => _isSavingTaken = false);
       }
+    }
+  }
+
+  Future<void> _checkPrescriptionCompletion(DrugItemEntity takenDrug) async {
+    final takenDrugKey = _drugKey(takenDrug);
+    for (final prescription in _activePrescriptions) {
+      if (!prescription.drugs.any((d) => _drugKey(d) == takenDrugKey)) continue;
+      final allComplete = prescription.drugs.every((drug) {
+        final total = _calculateDosesPerDay(drug.frequency) * drug.durationDays;
+        final taken = _takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
+        return taken >= total;
+      });
+      if (allComplete) {
+        try {
+          await _firestore
+              .collection(AppConstants.prescriptionsCollection)
+              .doc(prescription.id)
+              .update({'status': 'completed'});
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Tebrikler! Tedaviniz tamamlandı.'),
+                backgroundColor: AppColors.success,
+                duration: Duration(seconds: 4),
+              ),
+            );
+          }
+        } catch (_) {}
+      }
+      break;
     }
   }
 
@@ -222,7 +255,7 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) =>
-          getIt<PrescriptionCubit>()..loadPatientPrescriptions(widget.patientId),
+          getIt<PrescriptionCubit>()..watchPatientPrescriptions(widget.patientId),
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
@@ -235,7 +268,13 @@ class _MedicineSchedulePageState extends State<MedicineSchedulePage> {
               ],
             ),
           ),
-          body: BlocBuilder<PrescriptionCubit, PrescriptionState>(
+          body: BlocConsumer<PrescriptionCubit, PrescriptionState>(
+            listener: (context, state) {
+              if (state is PrescriptionListLoaded) {
+                _activePrescriptions =
+                    state.prescriptions.where((p) => p.isActive).toList();
+              }
+            },
             builder: (context, state) {
               if (state is PrescriptionLoading) {
                 return const Center(child: CircularProgressIndicator());

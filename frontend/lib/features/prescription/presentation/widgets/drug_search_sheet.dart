@@ -20,7 +20,7 @@ class _DrugSearchSheetState extends State<DrugSearchSheet> {
   final _searchController = TextEditingController();
   DrugSearchResultEntity? _selectedDrug;
 
-  final _dosageController = TextEditingController();
+  final _dosageController = TextEditingController(text: '1 tablet');
   String _selectedFrequency = 'Günde 1 kez';
   int _durationDays = 7;
 

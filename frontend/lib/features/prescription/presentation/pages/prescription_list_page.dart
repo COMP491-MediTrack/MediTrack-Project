@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:go_router/go_router.dart';
-import 'package:meditrack/core/constants/app_constants.dart';
 import 'package:meditrack/core/di/injection.dart';
 import 'package:meditrack/core/router/route_names.dart';
 import 'package:meditrack/core/theme/app_colors.dart';
-import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 import 'package:meditrack/features/prescription/domain/entities/prescription_entity.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_cubit.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
@@ -29,105 +26,87 @@ class PrescriptionListPage extends StatefulWidget {
 }
 
 class _PrescriptionListPageState extends State<PrescriptionListPage> {
-  Map<String, int> _lastKnownTakenDoseCountsByDrug = {};
-
   @override
   Widget build(BuildContext context) {
     final isDoctor = widget.doctorExtra != null;
     return BlocProvider(
-      create: (_) => getIt<PrescriptionCubit>()..loadPatientPrescriptions(widget.patientId),
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            isDoctor && widget.patientName != null
-                ? widget.patientName!
-                : 'Reçetelerim',
-          ),
-          centerTitle: true,
-          actions: isDoctor
-              ? [
-                  IconButton(
-                    icon: const Icon(Icons.science_outlined),
-                    tooltip: 'Lab Sonuçları',
+      create: (_) => getIt<PrescriptionCubit>()..watchPatientPrescriptions(widget.patientId),
+      child: BlocConsumer<PrescriptionCubit, PrescriptionState>(
+        listener: (context, state) {
+          if (state is PrescriptionCreated) {
+            context.read<PrescriptionCubit>().loadPatientPrescriptions(widget.patientId);
+          }
+        },
+        buildWhen: (_, current) => current is! PrescriptionCreated,
+        builder: (context, state) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(
+                isDoctor && widget.patientName != null
+                    ? widget.patientName!
+                    : 'Reçetelerim',
+              ),
+              centerTitle: true,
+              actions: isDoctor
+                  ? [
+                      IconButton(
+                        icon: const Icon(Icons.science_outlined),
+                        tooltip: 'Lab Sonuçları',
+                        onPressed: () => context.push(
+                          RouteNames.labResults,
+                          extra: {
+                            'patientId': widget.patientId,
+                            'patientName': widget.patientName,
+                            'isDoctor': true,
+                          },
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                    ]
+                  : null,
+            ),
+            floatingActionButton: isDoctor
+                ? FloatingActionButton.extended(
                     onPressed: () => context.push(
-                      RouteNames.labResults,
+                      RouteNames.createPrescription,
                       extra: {
-                        'patientId': widget.patientId,
-                        'patientName': widget.patientName,
-                        'isDoctor': true,
+                        ...widget.doctorExtra!,
+                        'cubit': context.read<PrescriptionCubit>(),
                       },
                     ),
-                  ),
-                  SizedBox(width: 8.w),
-                ]
-              : null,
-        ),
-        floatingActionButton: isDoctor
-            ? FloatingActionButton.extended(
-                onPressed: () => context.push(
-                  RouteNames.createPrescription,
-                  extra: widget.doctorExtra,
-                ),
-                icon: const Icon(Icons.add),
-                label: const Text('Yeni Reçete'),
-              )
-            : null,
-        body: BlocBuilder<PrescriptionCubit, PrescriptionState>(
-          builder: (context, state) {
-            if (state is PrescriptionLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state is PrescriptionError) {
-              return Center(child: Text(state.message));
-            }
-            if (state is PrescriptionListLoaded) {
-              if (state.prescriptions.isEmpty) {
-                return _buildEmptyState();
-              }
-              return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: getIt<FirebaseFirestore>()
-                    .collection(AppConstants.adherenceCollection)
-                    .where('patient_id', isEqualTo: widget.patientId)
-                    .snapshots(),
-                builder: (context, adherenceSnapshot) {
-                  if (adherenceSnapshot.hasData) {
-                    final freshCounts = <String, int>{};
-                    for (final doc in adherenceSnapshot.data!.docs) {
-                      final data = doc.data();
-                      final drugKey = data['drug_key'] as String?;
-                      final doseCount = (data['dose_count'] as num?)?.toInt() ?? 1;
-                      if (drugKey == null || drugKey.isEmpty) continue;
-                      freshCounts[drugKey] = (freshCounts[drugKey] ?? 0) + doseCount;
-                    }
-                    _lastKnownTakenDoseCountsByDrug = freshCounts;
-                  }
-                  final takenDoseCountsByDrug = _lastKnownTakenDoseCountsByDrug;
-
-                  return ListView.separated(
-                    padding: EdgeInsets.all(16.w),
-                    itemCount: state.prescriptions.length,
-                    separatorBuilder: (_, __) => SizedBox(height: 12.h),
-                    itemBuilder: (_, index) {
-                      final prescription = state.prescriptions[index];
-                      final isCurrentlyActive = _isPrescriptionCurrentlyActive(
-                        prescription,
-                        takenDoseCountsByDrug,
-                      );
-                      return _buildPrescriptionCard(
-                        context,
-                        prescription,
-                        isCurrentlyActive: isCurrentlyActive,
-                      );
-                    },
-                  );
-                },
-              );
-            }
-            return const SizedBox();
-          },
-        ),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Yeni Reçete'),
+                  )
+                : null,
+            body: _buildBody(context, state),
+          );
+        },
       ),
     );
+  }
+
+  Widget _buildBody(BuildContext context, PrescriptionState state) {
+    if (state is PrescriptionLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state is PrescriptionError) {
+      return Center(child: Text(state.message));
+    }
+    if (state is PrescriptionListLoaded) {
+      if (state.prescriptions.isEmpty) {
+        return _buildEmptyState();
+      }
+      return ListView.separated(
+        padding: EdgeInsets.all(16.w),
+        itemCount: state.prescriptions.length,
+        separatorBuilder: (_, __) => SizedBox(height: 12.h),
+        itemBuilder: (_, index) {
+          final prescription = state.prescriptions[index];
+          return _buildPrescriptionCard(context, prescription);
+        },
+      );
+    }
+    return const SizedBox();
   }
 
   Widget _buildEmptyState() {
@@ -146,11 +125,7 @@ class _PrescriptionListPageState extends State<PrescriptionListPage> {
     );
   }
 
-  Widget _buildPrescriptionCard(
-    BuildContext context,
-    PrescriptionEntity prescription, {
-    required bool isCurrentlyActive,
-  }) {
+  Widget _buildPrescriptionCard(BuildContext context, PrescriptionEntity prescription) {
     return InkWell(
       onTap: () => context.push(RouteNames.prescriptionDetail, extra: prescription),
       borderRadius: BorderRadius.circular(12.r),
@@ -171,13 +146,18 @@ class _PrescriptionListPageState extends State<PrescriptionListPage> {
                   'Dr. ${prescription.doctorName}',
                   style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
                 ),
-                _buildStatusChip(isCurrentlyActive),
+                _buildStatusChip(prescription.isActive),
               ],
             ),
             SizedBox(height: 8.h),
-            Text(
-              '${prescription.drugs.length} ilaç',
-              style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
+            ...prescription.drugs.map(
+              (drug) => Padding(
+                padding: EdgeInsets.only(bottom: 2.h),
+                child: Text(
+                  '• ${drug.brandName}',
+                  style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
+                ),
+              ),
             ),
             SizedBox(height: 4.h),
             Text(
@@ -197,13 +177,11 @@ class _PrescriptionListPageState extends State<PrescriptionListPage> {
         color: isActive ? AppColors.primaryContainer : AppColors.errorContainer,
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
-          color: isActive
-              ? AppColors.primary.withAlpha(77)
-              : AppColors.error.withAlpha(77),
+          color: isActive ? AppColors.primary.withAlpha(77) : AppColors.error.withAlpha(77),
         ),
       ),
       child: Text(
-        isActive ? 'Aktif' : 'İnaktif',
+        isActive ? 'Aktif' : 'Tamamlandı',
         style: TextStyle(
           fontSize: 12.sp,
           color: isActive ? AppColors.primaryDark : AppColors.error,
@@ -215,53 +193,5 @@ class _PrescriptionListPageState extends State<PrescriptionListPage> {
 
   String _formatDate(DateTime date) {
     return '${date.day}.${date.month}.${date.year}';
-  }
-
-  bool _isPrescriptionCurrentlyActive(
-    PrescriptionEntity prescription,
-    Map<String, int> takenDoseCountsByDrug,
-  ) {
-    if (!prescription.isActive || prescription.drugs.isEmpty) return false;
-
-    for (final drug in prescription.drugs) {
-      final totalStock = _calculateDosesPerDay(drug.frequency) * drug.durationDays;
-      if (totalStock <= 0) continue;
-      final takenCount = takenDoseCountsByDrug[_drugKey(drug)] ?? 0;
-      final remaining = (totalStock - takenCount).clamp(0, totalStock);
-      if (remaining > 0) return true;
-    }
-    return false;
-  }
-
-  String _drugKey(DrugItemEntity drug) {
-    if (drug.barcode.isNotEmpty) {
-      return drug.barcode;
-    }
-    return '${drug.brandName}_${drug.frequency}_${drug.durationDays}'
-        .toLowerCase();
-  }
-
-  int _calculateDosesPerDay(String frequency) {
-    final normalized = frequency.toLowerCase();
-
-    final turkishDailyMatch = RegExp(r'günde\s*(\d+)').firstMatch(normalized);
-    if (turkishDailyMatch != null) {
-      return int.tryParse(turkishDailyMatch.group(1) ?? '') ?? 1;
-    }
-
-    if (normalized.contains('x')) {
-      final parts = normalized.split('x');
-      if (parts.length == 2) {
-        final times = int.tryParse(parts[0].trim()) ?? 1;
-        final dose = int.tryParse(parts[1].trim()) ?? 1;
-        return times * dose;
-      }
-    }
-
-    if (normalized.contains('haftada')) {
-      return 1;
-    }
-
-    return 1;
   }
 }

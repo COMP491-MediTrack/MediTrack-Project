@@ -343,14 +343,14 @@ class DoctorDashboardPage extends StatelessWidget {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      patient.email,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                    // SizedBox(height: 2.h),
+                    // Text(
+                    //   patient.email,
+                    //   style: TextStyle(
+                    //     fontSize: 13.sp,
+                    //     color: AppColors.textSecondary,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

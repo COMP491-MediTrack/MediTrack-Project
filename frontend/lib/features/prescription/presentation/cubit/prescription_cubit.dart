@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import 'package:meditrack/features/prescription/domain/entities/ddi_result_entity.dart';
 import 'package:meditrack/features/prescription/domain/entities/drug_item_entity.dart';
 import 'package:meditrack/features/prescription/domain/usecases/check_ddi_usecase.dart';
 import 'package:meditrack/features/prescription/domain/usecases/create_prescription_usecase.dart';
@@ -7,6 +10,7 @@ import 'package:meditrack/features/prescription/domain/usecases/get_doctor_presc
 import 'package:meditrack/features/prescription/domain/usecases/get_patient_prescriptions_usecase.dart';
 import 'package:meditrack/features/prescription/domain/usecases/search_drugs_usecase.dart';
 import 'package:meditrack/features/prescription/domain/usecases/explain_ddi_usecase.dart';
+import 'package:meditrack/features/prescription/domain/usecases/watch_patient_prescriptions_usecase.dart';
 import 'package:meditrack/features/prescription/presentation/cubit/prescription_state.dart';
 
 @injectable
@@ -17,6 +21,9 @@ class PrescriptionCubit extends Cubit<PrescriptionState> {
   final CreatePrescriptionUseCase _createPrescription;
   final GetPatientPrescriptionsUseCase _getPatientPrescriptions;
   final GetDoctorPrescriptionsUseCase _getDoctorPrescriptions;
+  final WatchPatientPrescriptionsUseCase _watchPatientPrescriptions;
+
+  StreamSubscription? _prescriptionSub;
 
   PrescriptionCubit(
     this._searchDrugs,
@@ -25,6 +32,7 @@ class PrescriptionCubit extends Cubit<PrescriptionState> {
     this._createPrescription,
     this._getPatientPrescriptions,
     this._getDoctorPrescriptions,
+    this._watchPatientPrescriptions,
   ) : super(PrescriptionInitial());
 
   Future<void> searchDrugs(String name) async {
@@ -63,6 +71,7 @@ class PrescriptionCubit extends Cubit<PrescriptionState> {
     required String patientName,
     required String doctorName,
     required List<DrugItemEntity> drugs,
+    List<DdiInteractionEntity> interactions = const [],
   }) async {
     emit(PrescriptionLoading());
     final result = await _createPrescription(
@@ -70,6 +79,7 @@ class PrescriptionCubit extends Cubit<PrescriptionState> {
       patientName: patientName,
       doctorName: doctorName,
       drugs: drugs,
+      interactions: interactions,
     );
     result.fold(
       (failure) => emit(PrescriptionError(failure.message)),
@@ -84,6 +94,21 @@ class PrescriptionCubit extends Cubit<PrescriptionState> {
       (failure) => emit(PrescriptionError(failure.message)),
       (prescriptions) => emit(PrescriptionListLoaded(prescriptions)),
     );
+  }
+
+  void watchPatientPrescriptions(String patientId) {
+    _prescriptionSub?.cancel();
+    emit(PrescriptionLoading());
+    _prescriptionSub = _watchPatientPrescriptions(patientId).listen(
+      (prescriptions) => emit(PrescriptionListLoaded(prescriptions)),
+      onError: (_) => emit(PrescriptionError('Reçeteler yüklenemedi.')),
+    );
+  }
+
+  @override
+  Future<void> close() {
+    _prescriptionSub?.cancel();
+    return super.close();
   }
 
   Future<void> loadDoctorPrescriptions(String doctorId) async {
