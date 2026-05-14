@@ -7,27 +7,27 @@ import 'package:meditrack/core/di/injection.dart';
 import 'package:meditrack/core/router/route_names.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:meditrack/features/auth/presentation/cubit/auth_state.dart';
-
+ 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
-
+ 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
-
+ 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-
+ 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
-
+ 
   void _onLoginPressed(BuildContext context) {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthCubit>().login(
@@ -36,7 +36,7 @@ class _LoginPageState extends State<LoginPage> {
           );
     }
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -91,7 +91,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-
+ 
   Widget _buildHeader(BuildContext context) {
     return Column(
       children: [
@@ -126,7 +126,7 @@ class _LoginPageState extends State<LoginPage> {
       ],
     );
   }
-
+ 
   Widget _buildEmailField() {
     return TextFormField(
       controller: _emailController,
@@ -149,7 +149,7 @@ class _LoginPageState extends State<LoginPage> {
       },
     );
   }
-
+ 
   Widget _buildPasswordField() {
     return TextFormField(
       controller: _passwordController,
@@ -179,7 +179,7 @@ class _LoginPageState extends State<LoginPage> {
       },
     );
   }
-
+ 
   Widget _buildLoginButton(BuildContext context, AuthState state) {
     final isLoading = state is AuthLoading;
     return FilledButton(
@@ -205,7 +205,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
     );
   }
-
+ 
   Widget _buildRegisterLink(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
