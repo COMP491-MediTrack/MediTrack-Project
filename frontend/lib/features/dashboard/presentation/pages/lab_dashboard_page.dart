@@ -402,6 +402,7 @@ class LabDashboardPage extends StatelessWidget {
                   label: Text('Sonuç Yükle', style: TextStyle(fontSize: 13.sp)),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF00695C),
+                    minimumSize: Size(0, 36.h),
                     padding: EdgeInsets.symmetric(
                         horizontal: 14.w, vertical: 8.h),
                   ),
