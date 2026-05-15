@@ -133,18 +133,17 @@ class LabDashboardPage extends StatelessWidget {
     );
   }
 
-  /// LabResultCubit'ten gelen upload feedback'i gösterir
   Widget _buildUploadFeedback() {
     return BlocConsumer<LabResultCubit, LabResultState>(
       listener: (context, state) {
         if (state is LabResultUploaded) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Lab sonucu başarıyla yüklendi'),
+              content: Text('Lab sonucu başarıyla yüklendi ve istek tamamlandı'),
               backgroundColor: AppColors.success,
             ),
           );
-          // Listeyi yenile
+          // Yükleme sonrası listeyi otomatik yenile (Böylece statü 'Tamamlandı' olarak görünür)
           context.read<TestRequestCubit>().loadAllTestRequests();
         }
         if (state is LabResultError) {
@@ -175,7 +174,7 @@ class LabDashboardPage extends StatelessWidget {
                   ),
                   SizedBox(width: 12.w),
                   Text(
-                    'PDF yükleniyor...',
+                    'PDF ve Sonuç Kaydediliyor...',
                     style:
                         TextStyle(fontSize: 14.sp, color: AppColors.textPrimary),
                   ),
@@ -340,7 +339,6 @@ class LabDashboardPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Başlık satırı
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -371,7 +369,6 @@ class LabDashboardPage extends StatelessWidget {
             ],
           ),
           SizedBox(height: 10.h),
-          // İstenen tahliller
           Wrap(
             spacing: 6.w,
             runSpacing: 4.h,
@@ -388,7 +385,6 @@ class LabDashboardPage extends StatelessWidget {
                 .toList(),
           ),
           SizedBox(height: 10.h),
-          // Tarih + Aksiyon
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -399,8 +395,9 @@ class LabDashboardPage extends StatelessWidget {
               ),
               if (isPending)
                 FilledButton.icon(
+                  // BURASI GÜNCELLENDİ: request.id (testRequestId) artık gönderiliyor!
                   onPressed: () =>
-                      _pickAndUploadResult(context, request.patientId),
+                      _pickAndUploadResult(context, request.patientId, request.id),
                   icon: Icon(Icons.upload_file, size: 16.sp),
                   label: Text('Sonuç Yükle', style: TextStyle(fontSize: 13.sp)),
                   style: FilledButton.styleFrom(
@@ -437,8 +434,9 @@ class LabDashboardPage extends StatelessWidget {
     );
   }
 
+  // BURASI GÜNCELLENDİ: testRequestId parametresi eklendi
   Future<void> _pickAndUploadResult(
-      BuildContext context, String patientId) async {
+      BuildContext context, String patientId, String testRequestId) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
@@ -449,7 +447,9 @@ class LabDashboardPage extends StatelessWidget {
     if (file.bytes == null) return;
     if (!context.mounted) return;
 
+    // Cubit'e yeni parametre ile yükleme emri veriliyor
     context.read<LabResultCubit>().uploadLabResult(
+          testRequestId: testRequestId, // Zorunlu parametre
           patientId: patientId,
           bytes: file.bytes!,
           fileName: file.name,

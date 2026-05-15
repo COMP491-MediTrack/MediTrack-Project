@@ -35,6 +35,7 @@ class LabResultCubit extends Cubit<LabResultState> {
   }
 
   Future<void> uploadLabResult({
+    required String testRequestId, // YENİ EKLENDİ
     required String patientId,
     required Uint8List bytes,
     required String fileName,
@@ -42,6 +43,7 @@ class LabResultCubit extends Cubit<LabResultState> {
   }) async {
     emit(const LabResultUploading());
     final result = await _uploadLabResult(
+      testRequestId: testRequestId, // YENİ EKLENDİ: UseCase'e gönderiliyor
       patientId: patientId,
       bytes: bytes,
       fileName: fileName,

@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 class LabResultEntity extends Equatable {
   final String id;
+  final String testRequestId; // YENİ EKLENDİ: Hangi tahlil isteğinin sonucu?
   final String patientId;
   final String fileName;
   final String fileUrl;
@@ -10,6 +11,7 @@ class LabResultEntity extends Equatable {
 
   const LabResultEntity({
     required this.id,
+    required this.testRequestId,
     required this.patientId,
     required this.fileName,
     required this.fileUrl,
@@ -18,5 +20,13 @@ class LabResultEntity extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, patientId, fileName, fileUrl, notes, uploadedAt];
+  List<Object?> get props => [
+        id,
+        testRequestId,
+        patientId,
+        fileName,
+        fileUrl,
+        notes,
+        uploadedAt,
+      ];
 }

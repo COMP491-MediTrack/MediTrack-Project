@@ -33,8 +33,8 @@ FastAPI → OpenFDA API         # Generic name bazlı ek ilaç bilgisi (eklenece
 - `prescriptions` — reçeteler (doctorId, patientId, drugs[], status, createdAt)
 - `reminders` — ilaç hatırlatıcıları
 - `adherence` — ilaç alım kayıtları
-- `lab_results` — laboratuvar sonuçları (PDF, Firebase Storage)
-- `test_requests` — doktorun hastadan istediği tahliller (patient_id, patient_name, doctor_id, doctor_name, requested_tests[], status, created_at)
+- `lab_results` — laboratuvar sonuçları (PDF, Firebase Storage, testRequestId alanı ile tahlil isteğine bağlıdır)
+- `test_requests` — doktorun hastadan istediği tahliller (patient_id, patient_name, doctor_id, doctor_name, requested_tests[], status: Bekliyor veya Tamamlandı, created_at)
 
 **Firestore Security Rules özeti:**
 - Kullanıcı kendi dokümanını okuyup yazabilir
@@ -52,6 +52,7 @@ FastAPI → OpenFDA API         # Generic name bazlı ek ilaç bilgisi (eklenece
 - Dashboard: hasta listesi (Firestore'dan doctorId == uid sorgusu)
 - Reçete yazar → FastAPI'ye ilaç arama → DDI kontrolü → Firestore'a kaydeder
 - Hasta semptomlarını ve AI öncelik skorunu görür
+- Tahlil isteği oluşturabilir (test_requests)
 
 **Patient:**
 - Kayıt olurken rol "Hasta" seçilir ve listeden doktor seçilir
@@ -63,6 +64,7 @@ FastAPI → OpenFDA API         # Generic name bazlı ek ilaç bilgisi (eklenece
 - Kayıt olurken rol "Lab" seçilir, doctorId alanı olmaz
 - Dashboard: tüm bekleyen ve tamamlanan tahlil istekleri
 - Bekleyen istekler için lab sonucu PDF'i yükler (Firebase Storage → Firestore `lab_results`)
+- Sonuç yüklendiği anda ilgili test_request statüsü otomatik olarak Tamamlandı olarak güncellenir
 - Doktor veya hastayla bağlı değildir; tüm `test_requests` koleksiyonuna erişir
 
 ---
@@ -91,6 +93,7 @@ features/{feature_name}/
 **Tamamlanan feature'lar:**
 - `auth` — Firebase Auth ile giriş/kayıt, rol yönetimi (doctor | patient | lab), hasta→doktor seçimi
 - `dashboard` — Doctor dashboard (hasta listesi), Patient dashboard (reçete özeti), Lab dashboard (tahlil istekleri)
+- `lab_results` — Tahlil isteği ve sonuç yönetimi, otomatik statü güncelleme mekanizması
 
 **Yapılacak feature'lar:**
 - `prescription` — Doktor reçete oluşturur, ilaç arar, DDI kontrolü, Firestore'a kaydeder
@@ -184,19 +187,40 @@ Tüm Failure tipleri `core/errors/failures.dart` içindedir:
 | 4 | Drug Search (FastAPI entegrasyonu) | ✅ Tamamlandı |
 | 5 | DDI Kontrolü | ✅ Tamamlandı |
 | 6 | Lab Dashboard (tahlil istekleri + PDF yükleme) | ✅ Tamamlandı |
+| 7 | Lab workflow & Status Automation | ✅ Tamamlandı |
+
+---
+
+## Son Güncellemeler ve Mimari İyileştirmeler (Lab & Request Entegrasyonu)
+
+Laboratuvar süreçlerini otomatize etmek için aşağıdaki geliştirmeler yapılmıştır:
+
+### 1. Veri Yapısı ve Bağlantı İyileştirmeleri
+- Request-Result Linking: `lab_results` koleksiyonundaki her dokümana `testRequestId` alanı eklenmiştir.
+- Status Management: `test_requests` koleksiyonu Bekliyor ve Tamamlandı statülerini takip eder.
+
+### 2. Domain & UseCase Mantığı (Atomic Operations)
+- `UploadLabResultUseCase` genişletilerek atomic bir iş akışı oluşturulmuştur: PDF yükleme başarılı olduğu anda `TestRequestRepository` üzerinden ilgili isteğin statüsü otomatik olarak Tamamlandı yapılır.
+- `TestRequestRepository`'ye statü güncelleme (`updateTestRequestStatus`) ve doktor bazlı listeleme yetenekleri eklenmiştir.
+
+### 3. Presentation (UI) Katmanı Güncellemeleri
+- Contextual Upload: Lab görevlisi için genel bir yükleme butonu yerine, her tahlil isteği kartının içine özel yükleme butonu yerleştirilmiştir.
+- Rol Bazlı Görünüm: `LabResultsPage` ekranına `isLab` parametresi eklenmiş, lab görevlisinin yükleme yetkileri bu parametre ile kontrol altına alınmıştır.
+
+---
 
 ## Secondary (MVP Sonrası)
 
 | # | Feature | Notlar |
 |---|---------|--------|
-| 7 | AI — Semptom analizi + doktor öncelik sıralaması | FastAPI → Claude API |
-| 8 | AI — Reçete özeti (hasta için sade dil) | FastAPI → Claude API |
-| 9 | AI — Lab sonucu PDF analizi | FastAPI → Claude API |
-| 10 | Barkod tarama (kamera) | |
-| 11 | Hasta profili + lab sonuçları (PDF) | Firebase Storage |
-| 12 | Yakın eczane haritası | Google Maps API |
-| 13 | Adherence streak takibi | |
-| 14 | Erişilebilirlik (büyük font, text-to-speech) | |
+| 8 | AI — Semptom analizi + doktor öncelik sıralaması | FastAPI → Claude API |
+| 9 | AI — Reçete özeti (hasta için sade dil) | FastAPI → Claude API |
+| 10 | AI — Lab sonucu PDF analizi | FastAPI → Claude API |
+| 11 | Barkod tarama (kamera) | |
+| 12 | Hasta profili + lab sonuçları (PDF) | Firebase Storage |
+| 13 | Yakın eczane haritası | Google Maps API |
+| 14 | Adherence streak takibi | |
+| 15 | Erişilebilirlik (büyük font, text-to-speech) | |
 
 ---
 

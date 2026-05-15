@@ -2,11 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:injectable/injectable.dart';
 import 'package:meditrack/features/lab_results/data/models/test_request_model.dart';
 
-
 abstract class TestRequestRemoteDatasource {
   Future<void> createTestRequest(TestRequestModel testRequest);
   Future<List<TestRequestModel>> getPatientTestRequests(String patientId);
+  Future<List<TestRequestModel>> getDoctorTestRequests(String doctorId); // YENİ
   Future<List<TestRequestModel>> getAllTestRequests();
+  Future<void> updateTestRequestStatus(String requestId, String status); // YENİ
 }
 
 @LazySingleton(as: TestRequestRemoteDatasource)
@@ -36,6 +37,20 @@ class TestRequestRemoteDatasourceImpl implements TestRequestRemoteDatasource {
         .toList();
   }
 
+  // YENİ: Doktorun kendi istediği tahlilleri getirmesi için
+  @override
+  Future<List<TestRequestModel>> getDoctorTestRequests(String doctorId) async {
+    final snapshot = await _firestore
+        .collection('test_requests')
+        .where('doctor_id', isEqualTo: doctorId)
+        .orderBy('created_at', descending: true)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => TestRequestModel.fromFirestore(doc))
+        .toList();
+  }
+
   @override
   Future<List<TestRequestModel>> getAllTestRequests() async {
     final snapshot = await _firestore
@@ -46,5 +61,14 @@ class TestRequestRemoteDatasourceImpl implements TestRequestRemoteDatasource {
     return snapshot.docs
         .map((doc) => TestRequestModel.fromFirestore(doc))
         .toList();
+  }
+
+  // YENİ: Lab görevlisi PDF yükleyince statüyü 'Tamamlandı' yapmak için
+  @override
+  Future<void> updateTestRequestStatus(String requestId, String status) async {
+    await _firestore
+        .collection('test_requests')
+        .doc(requestId)
+        .update({'status': status});
   }
 }

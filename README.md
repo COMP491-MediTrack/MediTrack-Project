@@ -20,11 +20,23 @@ Detaylı kurulum ve mimari bilgisi için ilgili README'ye bakın:
 
 ---
 
+## Ana Özellikler ve İş Akışı
+
+MediTrack, sağlık süreçlerini dijitalleştiren kapsamlı bir ekosistem sunar:
+
+- **Doktor Paneli:** Hasta listesi takibi, ilaç etkileşim (DDI) kontrollü reçete yazımı ve tahlil isteği oluşturma.
+- **Hasta Paneli:** Aktif reçetelerin takibi, ilaç hatırlatıcıları ve tahlil sonuçlarını görüntüleme.
+- **Laboratuvar Entegrasyonu:** Tüm tahlil isteklerinin merkezi takibi ve sonuç (PDF) yükleme işlemleri.
+- **Akıllı İş Akışı:** Laboratuvar görevlisi tarafından PDF yüklendiği anda, tahlil isteğinin statüsü otomatik olarak **"Bekliyor"** konumundan **"Tamamlandı"** konumuna güncellenir.
+- **Entegre Veri Akışı:** Doktor tarafından oluşturulan tahlil istekleri anında laboratuvar paneline düşer ve sonuçlar yüklendiğinde hem doktor hem de hasta tarafından anlık olarak erişilebilir.
+
+---
+
 ## Teknoloji Stack
 
 ```
 Flutter  →  Firebase Auth       # Kimlik doğrulama
-Flutter  →  Firestore           # Reçete, profil, uygulama verisi
+Flutter  →  Firestore           # Reçete, profil, uygulama verisi (Tahlil istekleri ve sonuç bağlamı)
 Flutter  →  FastAPI             # İlaç arama, DDI kontrolü, AI
 FastAPI  →  Claude API          # Semptom analizi, reçete özeti, lab analizi
 FastAPI  →  CSV                 # 7,917 Türk ilacı + 191,542 DDI kaydı
