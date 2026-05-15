@@ -4,6 +4,7 @@ import 'package:meditrack/features/lab_results/domain/entities/lab_result_entity
 class LabResultModel extends LabResultEntity {
   const LabResultModel({
     required super.id,
+    required super.testRequestId, // YENİ
     required super.patientId,
     required super.fileName,
     required super.fileUrl,
@@ -15,6 +16,7 @@ class LabResultModel extends LabResultEntity {
     final data = doc.data() as Map<String, dynamic>;
     return LabResultModel(
       id: doc.id,
+      testRequestId: data['test_request_id'] as String, // YENİ
       patientId: data['patient_id'] as String,
       fileName: data['file_name'] as String,
       fileUrl: data['file_url'] as String,
@@ -25,6 +27,7 @@ class LabResultModel extends LabResultEntity {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'test_request_id': testRequestId, // YENİ
       'patient_id': patientId,
       'file_name': fileName,
       'file_url': fileUrl,

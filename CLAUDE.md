@@ -3,7 +3,7 @@
 > **Not:** Commit mesajlarına asla `Co-Authored-By: Claude` ekleme. Claude contributor olarak görünmemeli.
 
 Koç Üniversitesi COMP491 bitirme projesi. Reçete ve ilaç takip uygulaması.
-Hedef: Doktor ve hasta rollerine sahip, mobil + web platformlarda çalışan dijital sağlık yönetim sistemi.
+Hedef: Doktor, hasta ve laboratuvar rollerine sahip, mobil + web platformlarda çalışan dijital sağlık yönetim sistemi.
 
 ---
 
@@ -29,17 +29,19 @@ FastAPI → OpenFDA API         # Generic name bazlı ek ilaç bilgisi (eklenece
 ```
 
 **Firebase Firestore koleksiyonları:**
-- `users` — kullanıcı profilleri (rol: doctor | patient, doctorId: hasta için bağlı doktor)
+- `users` — kullanıcı profilleri (rol: doctor | patient | lab, doctorId: hasta için bağlı doktor)
 - `prescriptions` — reçeteler (doctorId, patientId, drugs[], status, createdAt)
 - `reminders` — ilaç hatırlatıcıları
 - `adherence` — ilaç alım kayıtları
-- `lab_results` — laboratuvar sonuçları (PDF, Firebase Storage)
+- `lab_results` — laboratuvar sonuçları (PDF, Firebase Storage, testRequestId alanı ile tahlil isteğine bağlıdır)
+- `test_requests` — doktorun hastadan istediği tahliller (patient_id, patient_name, doctor_id, doctor_name, requested_tests[], status: Bekliyor veya Tamamlandı, created_at)
 
 **Firestore Security Rules özeti:**
 - Kullanıcı kendi dokümanını okuyup yazabilir
 - Giriş yapmış herkes doktorları listeleyebilir (kayıt ekranı için)
 - Doktor kendi hastalarını görebilir (doctorId == currentUser.uid)
 - Hasta kendi doktorunun profilini okuyabilir
+- Lab kullanıcısı tüm `test_requests` koleksiyonunu okuyabilir ve `lab_results` yazabilir
 
 ---
 
@@ -50,12 +52,20 @@ FastAPI → OpenFDA API         # Generic name bazlı ek ilaç bilgisi (eklenece
 - Dashboard: hasta listesi (Firestore'dan doctorId == uid sorgusu)
 - Reçete yazar → FastAPI'ye ilaç arama → DDI kontrolü → Firestore'a kaydeder
 - Hasta semptomlarını ve AI öncelik skorunu görür
+- Tahlil isteği oluşturabilir (test_requests)
 
 **Patient:**
 - Kayıt olurken rol "Hasta" seçilir ve listeden doktor seçilir
 - Firestore'da `doctorId` alanı oluşturulur
 - Dashboard: aktif reçeteler, ilacı aldım butonu
 - Semptomlarını girer → AI analiz eder → doktora öncelik skoru gider
+
+**Lab (Laboratuvar):**
+- Kayıt olurken rol "Lab" seçilir, doctorId alanı olmaz
+- Dashboard: tüm bekleyen ve tamamlanan tahlil istekleri
+- Bekleyen istekler için lab sonucu PDF'i yükler (Firebase Storage → Firestore `lab_results`)
+- Sonuç yüklendiği anda ilgili test_request statüsü otomatik olarak Tamamlandı olarak güncellenir
+- Doktor veya hastayla bağlı değildir; tüm `test_requests` koleksiyonuna erişir
 
 ---
 
@@ -81,8 +91,9 @@ features/{feature_name}/
 ```
 
 **Tamamlanan feature'lar:**
-- `auth` — Firebase Auth ile giriş/kayıt, rol yönetimi, hasta→doktor seçimi
-- `dashboard` — Doctor dashboard (hasta listesi), Patient dashboard (reçete özeti)
+- `auth` — Firebase Auth ile giriş/kayıt, rol yönetimi (doctor | patient | lab), hasta→doktor seçimi
+- `dashboard` — Doctor dashboard (hasta listesi), Patient dashboard (reçete özeti), Lab dashboard (tahlil istekleri)
+- `lab_results` — Tahlil isteği ve sonuç yönetimi, otomatik statü güncelleme mekanizması
 
 **Yapılacak feature'lar:**
 - `prescription` — Doktor reçete oluşturur, ilaç arar, DDI kontrolü, Firestore'a kaydeder
@@ -175,19 +186,41 @@ Tüm Failure tipleri `core/errors/failures.dart` içindedir:
 | 3 | Prescription Feature | ✅ Tamamlandı |
 | 4 | Drug Search (FastAPI entegrasyonu) | ✅ Tamamlandı |
 | 5 | DDI Kontrolü | ✅ Tamamlandı |
+| 6 | Lab Dashboard (tahlil istekleri + PDF yükleme) | ✅ Tamamlandı |
+| 7 | Lab workflow & Status Automation | ✅ Tamamlandı |
+
+---
+
+## Son Güncellemeler ve Mimari İyileştirmeler (Lab & Request Entegrasyonu)
+
+Laboratuvar süreçlerini otomatize etmek için aşağıdaki geliştirmeler yapılmıştır:
+
+### 1. Veri Yapısı ve Bağlantı İyileştirmeleri
+- Request-Result Linking: `lab_results` koleksiyonundaki her dokümana `testRequestId` alanı eklenmiştir.
+- Status Management: `test_requests` koleksiyonu Bekliyor ve Tamamlandı statülerini takip eder.
+
+### 2. Domain & UseCase Mantığı (Atomic Operations)
+- `UploadLabResultUseCase` genişletilerek atomic bir iş akışı oluşturulmuştur: PDF yükleme başarılı olduğu anda `TestRequestRepository` üzerinden ilgili isteğin statüsü otomatik olarak Tamamlandı yapılır.
+- `TestRequestRepository`'ye statü güncelleme (`updateTestRequestStatus`) ve doktor bazlı listeleme yetenekleri eklenmiştir.
+
+### 3. Presentation (UI) Katmanı Güncellemeleri
+- Contextual Upload: Lab görevlisi için genel bir yükleme butonu yerine, her tahlil isteği kartının içine özel yükleme butonu yerleştirilmiştir.
+- Rol Bazlı Görünüm: `LabResultsPage` ekranına `isLab` parametresi eklenmiş, lab görevlisinin yükleme yetkileri bu parametre ile kontrol altına alınmıştır.
+
+---
 
 ## Secondary (MVP Sonrası)
 
 | # | Feature | Notlar |
 |---|---------|--------|
-| 6 | AI — Semptom analizi + doktor öncelik sıralaması | FastAPI → Claude API |
-| 7 | AI — Reçete özeti (hasta için sade dil) | FastAPI → Claude API |
-| 8 | AI — Lab sonucu PDF analizi | FastAPI → Claude API |
-| 9 | Barkod tarama (kamera) | |
-| 10 | Hasta profili + lab sonuçları (PDF) | Firebase Storage |
-| 11 | Yakın eczane haritası | Google Maps API |
-| 12 | Adherence streak takibi | |
-| 13 | Erişilebilirlik (büyük font, text-to-speech) | |
+| 8 | AI — Semptom analizi + doktor öncelik sıralaması | FastAPI → Claude API |
+| 9 | AI — Reçete özeti (hasta için sade dil) | FastAPI → Claude API |
+| 10 | AI — Lab sonucu PDF analizi | FastAPI → Claude API |
+| 11 | Barkod tarama (kamera) | |
+| 12 | Hasta profili + lab sonuçları (PDF) | Firebase Storage |
+| 13 | Yakın eczane haritası | Google Maps API |
+| 14 | Adherence streak takibi | |
+| 15 | Erişilebilirlik (büyük font, text-to-speech) | |
 
 ---
 
@@ -254,7 +287,8 @@ backend/
 - FastAPI **kullanıcı verisi tutmaz**, sadece ilaç sorgulaması ve AI işlemleri yapar
 - Tüm uygulama verisi **Firestore**'da durur
 - `data/` klasörü `.gitignore`'da, CSV'ler repoya commit edilmez
-- İki kullanıcı rolü: `doctor` ve `patient` — tüm UI bu role göre şekillenir
+- Üç kullanıcı rolü: `doctor`, `patient` ve `lab` — tüm UI bu role göre şekillenir
 - Hasta kayıt olurken Firestore'daki doktorlar listelenir, bir doktor seçmek zorundadır
+- Lab kayıt olurken doktor seçimi gerekmez; `doctorId` alanı oluşturulmaz
 - AI özellikleri tıbbi teşhis değildir — her AI çıktısında disclaimer gösterilir
 - Uygulama kendi başına tıbbi tavsiye vermez, sadece resmi veri kaynaklarından bilgi sunar

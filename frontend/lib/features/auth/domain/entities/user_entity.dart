@@ -18,6 +18,7 @@ class UserEntity extends Equatable {
 
   bool get isDoctor => role == AppConstants.roleDoctor;
   bool get isPatient => role == AppConstants.rolePatient;
+  bool get isLab => role == AppConstants.roleLab;
 
   @override
   List<Object?> get props => [uid, email, name, role, doctorId];

@@ -15,6 +15,7 @@ class TestRequestRepositoryImpl implements TestRequestRepository {
     final model = TestRequestModel(
       id: testRequest.id,
       patientId: testRequest.patientId,
+      patientName: testRequest.patientName, // YENİ EKLENDİ: İsim kaybolmasın
       doctorId: testRequest.doctorId,
       doctorName: testRequest.doctorName,
       requestedTests: testRequest.requestedTests,
@@ -27,5 +28,22 @@ class TestRequestRepositoryImpl implements TestRequestRepository {
   @override
   Future<List<TestRequestEntity>> getPatientTestRequests(String patientId) async {
     return await _remoteDatasource.getPatientTestRequests(patientId);
+  }
+
+  // YENİ EKLENDİ: Doktorun kendi istediği tahlilleri getirmesi için
+  @override
+  Future<List<TestRequestEntity>> getDoctorTestRequests(String doctorId) async {
+    return await _remoteDatasource.getDoctorTestRequests(doctorId);
+  }
+
+  @override
+  Future<List<TestRequestEntity>> getAllTestRequests() async {
+    return await _remoteDatasource.getAllTestRequests();
+  }
+
+  // YENİ EKLENDİ: Lab görevlisi PDF yükleyince statüyü güncellemek için
+  @override
+  Future<void> updateTestRequestStatus(String requestId, String status) async {
+    await _remoteDatasource.updateTestRequestStatus(requestId, status);
   }
 }

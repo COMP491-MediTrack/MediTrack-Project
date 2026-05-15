@@ -26,8 +26,22 @@ class LabResultRepositoryImpl implements LabResultRepository {
     }
   }
 
+  // YENİ EKLENDİ: İsteğe bağlı sonucu getirme
+  @override
+  Future<Either<Failure, LabResultEntity?>> getLabResultByTestRequest(String testRequestId) async {
+    try {
+      final result = await _dataSource.getLabResultByTestRequest(testRequestId);
+      return Right(result);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message ?? 'Tahlil sonucu getirilemedi'));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
   @override
   Future<Either<Failure, LabResultEntity>> uploadLabResult({
+    required String testRequestId, // YENİ EKLENDİ
     required String patientId,
     required Uint8List bytes,
     required String fileName,
@@ -35,6 +49,7 @@ class LabResultRepositoryImpl implements LabResultRepository {
   }) async {
     try {
       final result = await _dataSource.uploadLabResult(
+        testRequestId: testRequestId, // YENİ EKLENDİ
         patientId: patientId,
         bytes: bytes,
         fileName: fileName,

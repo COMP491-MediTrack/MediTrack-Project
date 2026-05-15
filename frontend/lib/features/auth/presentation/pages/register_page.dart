@@ -22,6 +22,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
   bool _obscurePassword = true;
   String _selectedRole = AppConstants.rolePatient;
   String? _selectedDoctorId;
@@ -56,70 +57,85 @@ class _RegisterPageState extends State<RegisterPage> {
             password: _passwordController.text,
             name: _nameController.text.trim(),
             role: _selectedRole,
-            doctorId: _selectedRole == AppConstants.rolePatient ? _selectedDoctorId : null,
+            doctorId: _selectedRole == AppConstants.rolePatient
+                ? _selectedDoctorId
+                : null,
           );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<AuthCubit, AuthState>(
-      listener: (context, state) {
-        if (state is AuthAuthenticated) {
-          if (state.user.isDoctor) {
-            context.go(RouteNames.doctorDashboard);
-          } else {
-            context.go(RouteNames.patientDashboard);
-          }
-        } else if (state is AuthDoctorsLoaded) {
-          setState(() => _doctors = state.doctors);
-        } else if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
+    return BlocProvider(
+      create: (_) {
+        final cubit = getIt<AuthCubit>();
+        cubit.loadDoctors();
+        return cubit;
       },
-      builder: (context, state) {
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Kayıt Ol'),
-            centerTitle: true,
-          ),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(height: 24.h),
-                    _buildNameField(),
-                    SizedBox(height: 16.h),
-                    _buildEmailField(),
-                    SizedBox(height: 16.h),
-                    _buildPasswordField(),
-                    SizedBox(height: 24.h),
-                    _buildRoleSelector(context),
-                    if (_selectedRole == AppConstants.rolePatient) ...[
-                      SizedBox(height: 20.h),
-                      _buildDoctorSelector(context, state),
+      child: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthAuthenticated) {
+            if (state.user.isDoctor) {
+              context.go(RouteNames.doctorDashboard);
+            } else if (state.user.isLab) {
+              context.go(RouteNames.labDashboard);
+            } else {
+              context.go(RouteNames.patientDashboard);
+            }
+          } else if (state is AuthDoctorsLoaded) {
+            setState(() => _doctors = state.doctors);
+          } else if (state is AuthError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Kayıt Ol'),
+              centerTitle: true,
+            ),
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: 24.h),
+                      _buildNameField(),
+                      SizedBox(height: 16.h),
+                      _buildEmailField(),
+                      SizedBox(height: 16.h),
+                      _buildPasswordField(),
+                      SizedBox(height: 24.h),
+                      _buildRoleSelector(context),
+                      if (_selectedRole == AppConstants.rolePatient) ...[
+                        SizedBox(height: 20.h),
+                        _buildDoctorSelector(context, state),
+                      ],
+                      if (_selectedRole == AppConstants.roleLab) ...[
+                        SizedBox(height: 20.h),
+                        _buildLabInfoCard(),
+                      ],
+                      SizedBox(height: 32.h),
+                      _buildRegisterButton(context, state),
+                      SizedBox(height: 16.h),
+                      _buildLoginLink(context),
+                      SizedBox(height: 24.h),
                     ],
-                    SizedBox(height: 32.h),
-                    _buildRegisterButton(context, state),
-                    SizedBox(height: 16.h),
-                    _buildLoginLink(context),
-                    SizedBox(height: 24.h),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -208,6 +224,11 @@ class _RegisterPageState extends State<RegisterPage> {
               label: Text('Doktor'),
               icon: Icon(Icons.local_hospital_outlined),
             ),
+            ButtonSegment(
+              value: AppConstants.roleLab,
+              label: Text('Lab'),
+              icon: Icon(Icons.science_outlined),
+            ),
           ],
           selected: {_selectedRole},
           onSelectionChanged: (value) {
@@ -218,6 +239,32 @@ class _RegisterPageState extends State<RegisterPage> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildLabInfoCard() {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0F2F1),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFF80CBC4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Color(0xFF00695C)),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              'Laboratuvar hesabı; doktorların oluşturduğu tahlil isteklerini görür ve sonuç PDF\'lerini yükler.',
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: const Color(0xFF004D40),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

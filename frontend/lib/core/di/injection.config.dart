@@ -54,6 +54,8 @@ import 'package:meditrack/features/lab_results/domain/usecases/create_test_reque
     as _i851;
 import 'package:meditrack/features/lab_results/domain/usecases/delete_lab_result_usecase.dart'
     as _i592;
+import 'package:meditrack/features/lab_results/domain/usecases/get_all_test_requests_usecase.dart'
+    as _i932;
 import 'package:meditrack/features/lab_results/domain/usecases/get_lab_results_usecase.dart'
     as _i179;
 import 'package:meditrack/features/lab_results/domain/usecases/get_patient_test_requests.dart'
@@ -199,16 +201,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i179.GetLabResultsUseCase>(
       () => _i179.GetLabResultsUseCase(gh<_i692.LabResultRepository>()),
     );
-    gh.lazySingleton<_i500.UploadLabResultUseCase>(
-      () => _i500.UploadLabResultUseCase(gh<_i692.LabResultRepository>()),
-    );
-    gh.factory<_i834.LabResultCubit>(
-      () => _i834.LabResultCubit(
-        gh<_i179.GetLabResultsUseCase>(),
-        gh<_i500.UploadLabResultUseCase>(),
-        gh<_i592.DeleteLabResultUseCase>(),
-      ),
-    );
     gh.lazySingleton<_i23.CheckDdiUseCase>(
       () => _i23.CheckDdiUseCase(gh<_i202.PrescriptionRepository>()),
     );
@@ -239,6 +231,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i851.CreateTestRequest>(
       () => _i851.CreateTestRequest(gh<_i1059.TestRequestRepository>()),
     );
+    gh.lazySingleton<_i932.GetAllTestRequestsUseCase>(
+      () => _i932.GetAllTestRequestsUseCase(gh<_i1059.TestRequestRepository>()),
+    );
     gh.lazySingleton<_i119.GetPatientTestRequests>(
       () => _i119.GetPatientTestRequests(gh<_i1059.TestRequestRepository>()),
     );
@@ -246,10 +241,24 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i139.TestRequestCubit(
         gh<_i851.CreateTestRequest>(),
         gh<_i119.GetPatientTestRequests>(),
+        gh<_i932.GetAllTestRequestsUseCase>(),
+      ),
+    );
+    gh.lazySingleton<_i500.UploadLabResultUseCase>(
+      () => _i500.UploadLabResultUseCase(
+        gh<_i692.LabResultRepository>(),
+        gh<_i1059.TestRequestRepository>(),
       ),
     );
     gh.lazySingleton<_i556.GetNearbyPharmacies>(
       () => _i556.GetNearbyPharmacies(gh<_i1061.PharmacyRepository>()),
+    );
+    gh.factory<_i834.LabResultCubit>(
+      () => _i834.LabResultCubit(
+        gh<_i179.GetLabResultsUseCase>(),
+        gh<_i500.UploadLabResultUseCase>(),
+        gh<_i592.DeleteLabResultUseCase>(),
+      ),
     );
     gh.factory<_i297.PharmacyCubit>(
       () => _i297.PharmacyCubit(

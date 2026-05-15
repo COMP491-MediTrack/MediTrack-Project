@@ -11,4 +11,5 @@ class RouteNames {
   static const medicineSchedule = '/medicine-schedule';
   static const labResults = '/lab-results';
   static const createTestRequest = '/test-request/create';
+  static const labDashboard = '/lab';
 }

@@ -18,12 +18,14 @@ class LabResultsPage extends StatefulWidget {
   final String? patientId;
   final String? patientName;
   final bool isDoctor;
+  final bool isLab; // YENİ EKLENDİ: Lab görevlisi kontrolü için
 
   const LabResultsPage({
     super.key,
     this.patientId,
     this.patientName,
     this.isDoctor = false,
+    this.isLab = false, // Varsayılan olarak false
   });
 
   @override
@@ -44,11 +46,15 @@ class _LabResultsPageState extends State<LabResultsPage> {
     if (authState is AuthAuthenticated) {
       final id = widget.patientId ?? authState.user.uid;
       _labResultCubit.loadLabResults(id);
+      
+      // Eğer kullanıcı lab görevlisiyse ve özel bir patientId yoksa tüm tahlilleri yükleme mantığı
+      // TestRequestCubit içinde eklenebilir, ancak şimdilik mevcut flow'u koruyoruz.
       _testRequestCubit.loadTestRequests(id);
     }
   }
 
   bool get isDoctor => widget.isDoctor;
+  bool get isLab => widget.isLab; // YENİ EKLENDİ
   String? get patientId => widget.patientId;
   String? get patientName => widget.patientName;
 
@@ -72,7 +78,7 @@ class _LabResultsPageState extends State<LabResultsPage> {
                 appBar: AppBar(
                   title: Text(
                     isDoctor && patientName != null
-                        ? '${patientName} — Sonuçlar & İstekler'
+                        ? '$patientName — Sonuçlar & İstekler'
                         : 'Lab Sonuçları & İstekler',
                   ),
                   centerTitle: true,
@@ -83,13 +89,7 @@ class _LabResultsPageState extends State<LabResultsPage> {
                     ],
                   ),
                 ),
-                floatingActionButton: isDoctor && resolvedPatientId != null
-                    ? FloatingActionButton.extended(
-                        onPressed: () => _pickAndUpload(context, resolvedPatientId),
-                        icon: const Icon(Icons.upload_file),
-                        label: const Text('PDF Yükle'),
-                      )
-                    : null,
+                // FAB tamamen kaldırıldı çünkü artık spesifik bir isteğe yükleme yapıyoruz.
                 body: TabBarView(
                   children: [
                     _buildLabResultsTab(resolvedPatientId),
@@ -117,10 +117,14 @@ class _LabResultsPageState extends State<LabResultsPage> {
         if (state is LabResultUploaded) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Lab sonucu başarıyla yüklendi'),
+              content: Text('Lab sonucu başarıyla yüklendi ve statü güncellendi.'),
               backgroundColor: AppColors.success,
             ),
           );
+          // Yükleme başarılı olunca istekler sekmesini de güncellemek için yeniliyoruz
+          if (resolvedPatientId != null) {
+            _testRequestCubit.loadTestRequests(resolvedPatientId);
+          }
         }
       },
       builder: (context, state) {
@@ -133,7 +137,7 @@ class _LabResultsPageState extends State<LabResultsPage> {
                 if (state is LabResultUploading) ...[
                   SizedBox(height: 16.h),
                   Text(
-                    'Yükleniyor...',
+                    'Sonuç Yükleniyor ve Kaydediliyor...',
                     style: TextStyle(
                       fontSize: 14.sp,
                       color: AppColors.textSecondary,
@@ -196,16 +200,10 @@ class _LabResultsPageState extends State<LabResultsPage> {
             'Henüz lab sonucu yüklenmedi',
             style: TextStyle(fontSize: 16.sp, color: AppColors.textSecondary),
           ),
-          if (isDoctor) ...[
+          if (!isLab) ...[
             SizedBox(height: 8.h),
             Text(
-              'PDF yüklemek için aşağıdaki butonu kullanın',
-              style: TextStyle(fontSize: 13.sp, color: AppColors.textDisabled),
-            ),
-          ] else ...[
-            SizedBox(height: 8.h),
-            Text(
-              'Doktorunuz henüz sonuç yüklemedi',
+              'Lab görevlisi tahlil sonucunu henüz sisteme girmemiş',
               style: TextStyle(fontSize: 13.sp, color: AppColors.textDisabled),
             ),
           ]
@@ -250,6 +248,8 @@ class _LabResultsPageState extends State<LabResultsPage> {
       separatorBuilder: (_, __) => SizedBox(height: 12.h),
       itemBuilder: (context, index) {
         final request = requests[index];
+        final isCompleted = request.status == 'Tamamlandı';
+
         return Container(
           padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
@@ -274,7 +274,7 @@ class _LabResultsPageState extends State<LabResultsPage> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
+                      color: isCompleted ? AppColors.success.withOpacity(0.1) : AppColors.primaryLight,
                       borderRadius: BorderRadius.circular(6.r),
                     ),
                     child: Text(
@@ -282,7 +282,7 @@ class _LabResultsPageState extends State<LabResultsPage> {
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
+                        color: isCompleted ? AppColors.success : AppColors.primary,
                       ),
                     ),
                   ),
@@ -312,6 +312,27 @@ class _LabResultsPageState extends State<LabResultsPage> {
                 _formatDate(request.createdAt),
                 style: TextStyle(fontSize: 12.sp, color: AppColors.textDisabled),
               ),
+              // YENİ EKLENDİ: Sadece lab görevlisi ve statü 'Bekliyor' ise Yükle butonu çıksın
+              if (isLab && !isCompleted) ...[
+                SizedBox(height: 12.h),
+                Divider(color: AppColors.divider),
+                SizedBox(height: 4.h),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _pickAndUpload(context, request.patientId, request.id),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                    ),
+                    icon: Icon(Icons.upload_file, size: 18.sp),
+                    label: const Text('Bu Tahlil İçin PDF Yükle'),
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -381,7 +402,7 @@ class _LabResultsPageState extends State<LabResultsPage> {
                 tooltip: 'Aç',
                 onPressed: () => _openPdf(result.fileUrl),
               ),
-              if (isDoctor)
+              if (isDoctor || isLab)
                 IconButton(
                   icon: Icon(Icons.delete_outline, size: 20.sp, color: AppColors.error),
                   tooltip: 'Sil',
@@ -394,7 +415,8 @@ class _LabResultsPageState extends State<LabResultsPage> {
     );
   }
 
-  Future<void> _pickAndUpload(BuildContext context, String patientId) async {
+  // YENİ EKLENDİ: Artık testRequestId parametresi de alıyor!
+  Future<void> _pickAndUpload(BuildContext context, String patientId, String testRequestId) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
@@ -407,6 +429,7 @@ class _LabResultsPageState extends State<LabResultsPage> {
 
     if (!context.mounted) return;
     context.read<LabResultCubit>().uploadLabResult(
+          testRequestId: testRequestId, // Zorunlu alan eklendi
           patientId: patientId,
           bytes: file.bytes!,
           fileName: file.name,
@@ -429,7 +452,7 @@ class _LabResultsPageState extends State<LabResultsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Lab Sonucunu Sil'),
-        content: Text('"\${result.fileName}" silinecek. Emin misiniz?'),
+        content: Text('"${result.fileName}" silinecek. Emin misiniz?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

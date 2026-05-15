@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:injectable/injectable.dart';
@@ -9,7 +8,9 @@ import 'package:meditrack/features/lab_results/data/models/lab_result_model.dart
 
 abstract class LabResultRemoteDataSource {
   Future<List<LabResultModel>> getLabResults(String patientId);
+  Future<LabResultModel?> getLabResultByTestRequest(String testRequestId); // YENİ
   Future<LabResultModel> uploadLabResult({
+    required String testRequestId, // YENİ
     required String patientId,
     required Uint8List bytes,
     required String fileName,
@@ -42,8 +43,26 @@ class LabResultRemoteDataSourceImpl implements LabResultRemoteDataSource {
     }
   }
 
+  // YENİ: "Tamamlandı" statüsündeki bir isteğin sonucunu çekmek için
+  @override
+  Future<LabResultModel?> getLabResultByTestRequest(String testRequestId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(AppConstants.labResultsCollection)
+          .where('test_request_id', isEqualTo: testRequestId)
+          .limit(1)
+          .get();
+      
+      if (snapshot.docs.isEmpty) return null;
+      return LabResultModel.fromFirestore(snapshot.docs.first);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
   @override
   Future<LabResultModel> uploadLabResult({
+    required String testRequestId, // YENİ
     required String patientId,
     required Uint8List bytes,
     required String fileName,
@@ -60,6 +79,7 @@ class LabResultRemoteDataSourceImpl implements LabResultRemoteDataSource {
       final now = DateTime.now();
       final model = LabResultModel(
         id: '',
+        testRequestId: testRequestId, // YENİ
         patientId: patientId,
         fileName: fileName,
         fileUrl: fileUrl,
@@ -73,6 +93,7 @@ class LabResultRemoteDataSourceImpl implements LabResultRemoteDataSource {
 
       return LabResultModel(
         id: docRef.id,
+        testRequestId: testRequestId,
         patientId: patientId,
         fileName: fileName,
         fileUrl: fileUrl,
@@ -91,13 +112,11 @@ class LabResultRemoteDataSourceImpl implements LabResultRemoteDataSource {
     required String fileName,
   }) async {
     try {
-      // Firestore dokümanını sil
       await _firestore
           .collection(AppConstants.labResultsCollection)
           .doc(labResultId)
           .delete();
 
-      // Storage'daki dosyayı bul ve sil (prefix ile eşleşen ilk dosya)
       final listResult = await _storage.ref('lab_results/$patientId').listAll();
       for (final item in listResult.items) {
         if (item.name.endsWith('_$fileName')) {
